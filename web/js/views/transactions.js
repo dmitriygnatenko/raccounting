@@ -10,7 +10,7 @@ App.TransactionsView = {
             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400">
               <app-icon name="search" :size="16" />
             </span>
-            <input v-model="filters.search" type="text" :placeholder="App.t('Поиск по получателю, заметке, категории…')"
+            <input v-model="filters.search" type="text" :placeholder="App.t('Поиск по заметке, категории…')"
               class="w-full rounded-lg border border-ink-200 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
           </div>
           <div class="grid grid-cols-2 lg:flex gap-2.5">
@@ -61,8 +61,7 @@ App.TransactionsView = {
       </div>
 
       <div v-else class="rounded-xl bg-white border border-ink-200 overflow-hidden">
-        <div class="hidden lg:grid grid-cols-[1fr_160px_140px_1fr_120px_32px] gap-3 px-5 py-2.5 border-b border-ink-200 bg-ink-50/60 text-xs font-medium text-ink-400 uppercase tracking-wide">
-          <span>{{ App.t('Получатель') }}</span>
+        <div class="hidden lg:grid grid-cols-[160px_140px_1fr_120px_32px] gap-3 px-5 py-2.5 border-b border-ink-200 bg-ink-50/60 text-xs font-medium text-ink-400 uppercase tracking-wide">
           <span>{{ App.t('Категория') }}</span>
           <span>{{ App.t('Счёт') }}</span>
           <span>{{ App.t('Заметка') }}</span>
@@ -80,9 +79,8 @@ App.TransactionsView = {
 
           <ul class="divide-y divide-ink-100">
             <li v-for="t in group.txs" :key="t.id">
-              <button class="hidden lg:grid w-full text-left grid-cols-[1fr_160px_140px_1fr_120px_32px] gap-3 items-center px-5 py-3 hover:bg-ink-50/60 transition-colors cursor-pointer"
+              <button class="hidden lg:grid w-full text-left grid-cols-[160px_140px_1fr_120px_32px] gap-3 items-center px-5 py-3 hover:bg-ink-50/60 transition-colors cursor-pointer"
                 @click="ui.openEditTransaction(t)">
-                <span class="text-sm text-ink-900 font-medium truncate">{{ t.payee }}</span>
                 <span class="text-sm truncate">
                   <span v-if="t.type === 'transfer'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ink-100 text-ink-500">
                     <app-icon name="transfer" :size="12" />
@@ -108,19 +106,18 @@ App.TransactionsView = {
               <button class="lg:hidden w-full text-left flex items-center gap-3 px-4 py-3 active:bg-ink-50 transition-colors cursor-pointer" @click="ui.openEditTransaction(t)">
                 <span class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold"
                   :style="{ background: (finance.categoryById.get(t.categoryId ?? '')?.color ?? '#94a3b8') + '1a', color: finance.categoryById.get(t.categoryId ?? '')?.color ?? '#94a3b8' }">
-                  {{ t.payee.slice(0, 1).toUpperCase() }}
+                  {{ (t.type === 'transfer' ? App.t('Перевод') : (finance.categoryById.get(t.categoryId ?? '')?.name ?? '?')).slice(0, 1).toUpperCase() }}
                 </span>
                 <span class="min-w-0 flex-1">
                   <span class="flex items-center justify-between gap-2">
-                    <span class="text-sm font-medium text-ink-900 truncate">{{ t.payee }}</span>
+                    <span class="text-sm font-medium text-ink-900 truncate">{{ t.type === 'transfer' ? App.t('Перевод') : App.t(finance.categoryById.get(t.categoryId ?? '')?.name ?? 'Без категории') }}</span>
                     <span class="text-sm font-semibold shrink-0" :class="t.amount < 0 ? 'text-money-neg' : 'text-money-pos'">
                       {{ t.amount < 0 ? '−' : '+' }}{{ App.formatMoney(Math.abs(t.amount), finance.accountById.get(t.accountId)?.currency) }}
                     </span>
                   </span>
                   <span class="flex items-center justify-between gap-2 mt-0.5">
                     <span class="text-xs text-ink-400 truncate">
-                      {{ t.type === 'transfer' ? App.t('Перевод') : App.t(finance.categoryById.get(t.categoryId ?? '')?.name ?? 'Без категории') }} ·
-                      {{ App.t(finance.accountById.get(t.accountId)?.name) }}
+                      {{ t.memo || App.t(finance.accountById.get(t.accountId)?.name) }}
                     </span>
                   </span>
                 </span>
@@ -151,7 +148,6 @@ App.TransactionsView = {
     filtered() {
       const search = this.filters.search.trim().toLowerCase()
       return this.finance.state.transactions
-        .filter((t) => !t.scheduled)
         .filter((t) => !this.filters.accountId || t.accountId === this.filters.accountId)
         .filter((t) => !this.filters.categoryId || t.categoryId === this.filters.categoryId)
         .filter((t) => {
@@ -164,7 +160,7 @@ App.TransactionsView = {
         .filter((t) => {
           if (!search) return true
           const cat = this.finance.categoryById.get(t.categoryId ?? '')?.name ?? ''
-          return t.payee.toLowerCase().includes(search) || t.memo.toLowerCase().includes(search) || cat.toLowerCase().includes(search)
+          return t.memo.toLowerCase().includes(search) || cat.toLowerCase().includes(search)
         })
         .sort((a, b) => (a.date < b.date ? 1 : -1))
     },

@@ -1,5 +1,6 @@
 .idea
 .env
+*.env
 .DS_Store
 /bin/
 .claude

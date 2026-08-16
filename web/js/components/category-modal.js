@@ -23,11 +23,11 @@ App.CategoryModal = {
             <form class="p-5 space-y-4" @submit.prevent="submit">
               <div class="flex rounded-lg bg-ink-100 p-1">
                 <button type="button" class="flex-1 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
-                  :class="form.kind === 'expense' ? 'bg-white shadow-sm text-money-neg' : 'text-ink-500'"
-                  @click="form.kind = 'expense'">{{ App.t('Расход') }}</button>
+                  :class="form.type === 'expense' ? 'bg-white shadow-sm text-money-neg' : 'text-ink-500'"
+                  @click="form.type = 'expense'">{{ App.t('Расход') }}</button>
                 <button type="button" class="flex-1 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
-                  :class="form.kind === 'income' ? 'bg-white shadow-sm text-money-pos' : 'text-ink-500'"
-                  @click="form.kind = 'income'">{{ App.t('Доход') }}</button>
+                  :class="form.type === 'income' ? 'bg-white shadow-sm text-money-pos' : 'text-ink-500'"
+                  @click="form.type = 'income'">{{ App.t('Доход') }}</button>
               </div>
 
               <div>
@@ -50,6 +50,9 @@ App.CategoryModal = {
                 <button v-if="!ui.editingCategory.archived" type="button" :disabled="saving" :title="App.t('Скрыть из выбора категории при новых операциях')"
                   class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-ink-600 text-sm font-medium hover:bg-ink-50 cursor-pointer disabled:opacity-50"
                   @click="archive">{{ App.t('Деактивировать') }}</button>
+                <button v-else type="button" :disabled="saving" :title="App.t('Вернуть в выбор категории при новых операциях')"
+                  class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-ink-600 text-sm font-medium hover:bg-ink-50 cursor-pointer disabled:opacity-50"
+                  @click="unarchive">{{ App.t('Активировать') }}</button>
                 <button v-if="!inUse" type="button" :disabled="saving" :title="App.t('Удалить категорию безвозвратно')"
                   class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-money-neg text-sm font-medium hover:bg-red-50 cursor-pointer disabled:opacity-50"
                   @click="remove">{{ App.t('Удалить') }}</button>
@@ -73,7 +76,7 @@ App.CategoryModal = {
       ui: App.uiStore.state,
       saving: false,
       palette: PALETTE,
-      form: { name: '', kind: 'expense', color: PALETTE[0] },
+      form: { name: '', type: 'expense', color: PALETTE[0] },
     }
   },
   computed: {
@@ -89,8 +92,8 @@ App.CategoryModal = {
       if (!open) return
       const editing = this.ui.editingCategory
       this.form = editing
-        ? { name: editing.name, kind: editing.kind, color: editing.color }
-        : { name: '', kind: this.ui.newCategoryKind || 'expense', color: PALETTE[0] }
+        ? { name: editing.name, type: editing.type, color: editing.color }
+        : { name: '', type: this.ui.newCategoryType || 'expense', color: PALETTE[0] }
     },
   },
   methods: {
@@ -103,9 +106,9 @@ App.CategoryModal = {
       this.saving = true
       try {
         if (this.isEditing) {
-          await this.finance.updateCategory({ ...this.ui.editingCategory, name, kind: this.form.kind, color: this.form.color })
+          await this.finance.updateCategory({ ...this.ui.editingCategory, name, type: this.form.type, color: this.form.color })
         } else {
-          await this.finance.addCategory({ name, kind: this.form.kind, color: this.form.color })
+          await this.finance.addCategory({ name, type: this.form.type, color: this.form.color })
         }
         this.close()
       } finally {
@@ -117,6 +120,16 @@ App.CategoryModal = {
       this.saving = true
       try {
         await this.finance.archiveCategory(this.ui.editingCategory.id)
+        this.close()
+      } finally {
+        this.saving = false
+      }
+    },
+    async unarchive() {
+      if (!this.ui.editingCategory) return
+      this.saving = true
+      try {
+        await this.finance.unarchiveCategory(this.ui.editingCategory.id)
         this.close()
       } finally {
         this.saving = false

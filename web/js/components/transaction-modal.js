@@ -29,7 +29,7 @@ App.TransactionModal = {
 
               <div>
                 <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Сумма') }}</label>
-                <input v-model="form.amount" type="number" min="0" step="0.01" required placeholder="0"
+                <input v-model="form.amount" type="number" min="0" step="1" required placeholder="0"
                   class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
               </div>
 
@@ -67,12 +67,6 @@ App.TransactionModal = {
                 <p class="text-xs text-ink-400 mt-1">
                   {{ App.t('Зачислится на «{name}»:', { name: App.t(toAccount.name) }) }} <span class="font-medium text-ink-700">{{ formatMoney(convertedAmount, toAccount.currency) }}</span>
                 </p>
-              </div>
-
-              <div v-if="form.direction !== 'transfer'">
-                <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Получатель / Источник') }}</label>
-                <input v-model="form.payee" type="text" required :placeholder="App.t('Например, Пятёрочка')"
-                  class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
               </div>
 
               <div v-if="form.direction !== 'transfer'">
@@ -115,7 +109,6 @@ App.TransactionModal = {
         date: new Date().toISOString().slice(0, 10),
         accountId: '',
         toAccountId: '',
-        payee: '',
         categoryId: '',
         memo: '',
         amount: '',
@@ -129,8 +122,8 @@ App.TransactionModal = {
       return !!this.ui.editingTransaction
     },
     categoryOptions() {
-      const kind = this.form.direction === 'expense' ? 'expense' : 'income'
-      return this.finance.state.categories.filter((c) => c.kind === kind && (!c.archived || c.id === this.form.categoryId))
+      const type = this.form.direction === 'expense' ? 'expense' : 'income'
+      return this.finance.state.categories.filter((c) => c.type === type && (!c.archived || c.id === this.form.categoryId))
     },
     transferTargetOptions() {
       return this.finance.state.accounts.filter((a) => a.id !== this.form.accountId)
@@ -151,8 +144,8 @@ App.TransactionModal = {
       if (!this.isCrossCurrency) return null
       const fromCur = this.finance.currencyByCode.get(this.fromAccount.currency)
       const toCur = this.finance.currencyByCode.get(this.toAccount.currency)
-      if (!fromCur?.rateToRub || !toCur?.rateToRub) return null
-      return Math.round((fromCur.rateToRub / toCur.rateToRub) * 10000) / 10000
+      if (!fromCur?.rate || !toCur?.rate) return null
+      return Math.round((fromCur.rate / toCur.rate) * 10000) / 10000
     },
   },
   watch: {
@@ -177,13 +170,12 @@ App.TransactionModal = {
         const isOutgoing = editing.amount < 0
         this.form = {
           date: editing.date,
-          accountId: isOutgoing ? editing.accountId : editing.counterAccountId,
-          toAccountId: isOutgoing ? editing.counterAccountId : editing.accountId,
-          payee: '',
+          accountId: isOutgoing ? editing.accountId : editing.transferAccountId,
+          toAccountId: isOutgoing ? editing.transferAccountId : editing.accountId,
           categoryId: '',
           memo: editing.memo,
-          amount: editing.transferAmount ?? Math.abs(editing.amount),
-          rate: editing.rate ?? 1,
+          amount: Math.abs(editing.transferAmount ?? editing.amount),
+          rate: editing.transferRate ?? 1,
           direction: 'transfer',
         }
       } else if (editing) {
@@ -191,7 +183,6 @@ App.TransactionModal = {
           date: editing.date,
           accountId: editing.accountId,
           toAccountId: '',
-          payee: editing.payee,
           categoryId: editing.categoryId ?? '',
           memo: editing.memo,
           amount: Math.abs(editing.amount),
@@ -203,7 +194,6 @@ App.TransactionModal = {
           date: new Date().toISOString().slice(0, 10),
           accountId: this.finance.state.accounts[0]?.id ?? '',
           toAccountId: '',
-          payee: '',
           categoryId: '',
           memo: '',
           amount: '',
@@ -219,7 +209,7 @@ App.TransactionModal = {
       App.uiStore.closeTransactionModal()
     },
     async submit() {
-      const amountNum = Number(this.form.amount)
+      const amountNum = Math.round(Number(this.form.amount))
       if (!amountNum || !this.form.accountId) return
       this.saving = true
       try {
@@ -234,49 +224,43 @@ App.TransactionModal = {
             fromAccountId: this.form.accountId,
             toAccountId: this.form.toAccountId,
             amount: Math.abs(amountNum),
-            toAmount: Math.abs(amountNum) * rate,
+            toAmount: Math.round(Math.abs(amountNum) * rate),
             rate,
             date: this.form.date,
             memo: this.form.memo.trim(),
           }
           if (this.isEditing && this.ui.editingTransaction.type === 'transfer') {
-            await this.finance.updateTransfer(this.ui.editingTransaction.transferId, payload)
+            await this.finance.updateTransfer(this.ui.editingTransaction.id, payload)
           } else {
             await this.finance.addTransfer(payload)
           }
         } else {
-          if (!this.form.payee.trim()) return
           const signedAmount = this.form.direction === 'expense' ? -Math.abs(amountNum) : Math.abs(amountNum)
           if (this.isEditing && this.ui.editingTransaction.type !== 'transfer') {
             await this.finance.updateTransaction({
               ...this.ui.editingTransaction,
               date: this.form.date,
               accountId: this.form.accountId,
-              payee: this.form.payee.trim(),
               categoryId: this.form.categoryId || null,
               memo: this.form.memo.trim(),
               amount: signedAmount,
             })
           } else if (this.isEditing) {
-            await this.finance.deleteTransfer(this.ui.editingTransaction.transferId)
+            await this.finance.deleteTransfer(this.ui.editingTransaction.id)
             await this.finance.addTransaction({
               date: this.form.date,
               accountId: this.form.accountId,
-              payee: this.form.payee.trim(),
               categoryId: this.form.categoryId || null,
               memo: this.form.memo.trim(),
               amount: signedAmount,
-              status: 'none',
             })
           } else {
             await this.finance.addTransaction({
               date: this.form.date,
               accountId: this.form.accountId,
-              payee: this.form.payee.trim(),
               categoryId: this.form.categoryId || null,
               memo: this.form.memo.trim(),
               amount: signedAmount,
-              status: 'none',
             })
           }
         }
@@ -290,7 +274,7 @@ App.TransactionModal = {
       this.saving = true
       if (this.ui.editingTransaction.type === 'transfer') {
         try {
-          await this.finance.deleteTransfer(this.ui.editingTransaction.transferId)
+          await this.finance.deleteTransfer(this.ui.editingTransaction.id)
           this.close()
         } finally {
           this.saving = false

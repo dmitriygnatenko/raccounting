@@ -34,8 +34,8 @@ async function request(method, path, body) {
 }
 
 App.api = {
-  async login({ username, password }) {
-    return request('POST', '/api/auth/login', { username, password })
+  async login({ username, password, language }) {
+    return request('POST', '/api/auth/login', { username, password, language })
   },
   async logout() {
     return request('POST', '/api/auth/logout')
@@ -62,9 +62,6 @@ App.api = {
   getCurrencies() {
     return request('GET', '/api/currencies')
   },
-  getSettings() {
-    return request('GET', '/api/settings')
-  },
   async updateSettings(patch) {
     return request('PATCH', '/api/settings', patch)
   },
@@ -86,8 +83,8 @@ App.api = {
   async createTransfer({ fromAccountId, toAccountId, amount, toAmount, rate, date, memo }) {
     return request('POST', '/api/transfers', { fromAccountId, toAccountId, amount, toAmount, rate, date, memo })
   },
-  async deleteTransfer(transferId) {
-    return request('DELETE', `/api/transfers/${transferId}`)
+  async deleteTransfer(id) {
+    return request('DELETE', `/api/transfers/${id}`)
   },
   async createAccount(account) {
     return request('POST', '/api/accounts', account)

@@ -14,9 +14,18 @@ function initials(name) {
 
 const state = reactive({ user: null, checking: true })
 
+// The backend is the source of truth for the user's saved language once one exists (see
+// login.UseCase in the Go backend) — apply whatever it reports so the UI matches it, even if that
+// differs from what's currently in localStorage.
+function applyUserLanguage(user) {
+  const language = user?.settings?.language
+  if (language) App.setLocale(language)
+}
+
 async function restoreSession() {
   try {
     state.user = await App.api.me()
+    applyUserLanguage(state.user)
   } catch {
     state.user = null
   } finally {
@@ -25,8 +34,9 @@ async function restoreSession() {
 }
 
 async function login(username, password) {
-  const user = await App.api.login({ username, password })
+  const user = await App.api.login({ username, password, language: App.i18nStore.locale })
   state.user = user
+  applyUserLanguage(user)
   return user
 }
 
@@ -41,6 +51,15 @@ async function changeCredentials(currentPassword, newUsername, newPassword) {
   return user
 }
 
+// Changing the language in-app persists it to the backend first, then applies whatever it echoes
+// back — the same round-trip login/restoreSession use, rather than optimistically switching the UI
+// before the save is confirmed.
+async function changeLanguage(language) {
+  const settings = await App.api.updateSettings({ language })
+  if (state.user) state.user = { ...state.user, settings }
+  applyUserLanguage({ settings })
+}
+
 App.authStore = {
   state,
   get isAuthenticated() {
@@ -50,6 +69,7 @@ App.authStore = {
   login,
   logout,
   changeCredentials,
+  changeLanguage,
   restoreSession,
 }
 

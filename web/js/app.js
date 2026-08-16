@@ -25,6 +25,7 @@
   app.component('accounts-view', App.AccountsView)
   app.component('transactions-view', App.TransactionsView)
   app.component('reports-view', App.ReportsView)
+  app.component('budget-view', App.BudgetView)
   app.component('settings-view', App.SettingsView)
 
   app.mount('#app')

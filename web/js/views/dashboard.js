@@ -30,11 +30,11 @@ App.DashboardView = {
         </div>
         <div class="rounded-xl bg-white border border-ink-200 p-4">
           <p class="text-xs font-medium text-ink-500 mb-1.5">{{ App.t('Доходы, {month}', { month: monthLabel }) }}</p>
-          <p class="text-xl md:text-2xl font-semibold text-money-pos">+{{ formatMoney(totalIncome, finance.state.baseCurrency) }}</p>
+          <p class="text-xl md:text-2xl font-semibold" :class="totalIncome ? 'text-money-pos' : 'text-ink-950'">{{ totalIncome ? '+' : '' }}{{ formatMoney(totalIncome, finance.state.baseCurrency) }}</p>
         </div>
         <div class="rounded-xl bg-white border border-ink-200 p-4">
           <p class="text-xs font-medium text-ink-500 mb-1.5">{{ App.t('Расходы, {month}', { month: monthLabel }) }}</p>
-          <p class="text-xl md:text-2xl font-semibold text-money-neg">−{{ formatMoney(totalExpense, finance.state.baseCurrency) }}</p>
+          <p class="text-xl md:text-2xl font-semibold" :class="totalExpense ? 'text-money-neg' : 'text-ink-950'">{{ totalExpense ? '−' : '' }}{{ formatMoney(totalExpense, finance.state.baseCurrency) }}</p>
         </div>
         <div class="rounded-xl bg-white border border-ink-200 p-4">
           <p class="text-xs font-medium text-ink-500 mb-1.5">{{ App.t('Норма сбережений') }}</p>
@@ -94,10 +94,10 @@ App.DashboardView = {
       return App.formatMonthLabel(this.now.getFullYear(), this.now.getMonth())
     },
     monthExpenses() {
-      return this.finance.state.transactions.filter((t) => !t.scheduled && t.type !== 'transfer' && t.amount < 0 && monthKey(t.date) === this.currentMonthKey)
+      return this.finance.state.transactions.filter((t) => t.type !== 'transfer' && t.amount < 0 && monthKey(t.date) === this.currentMonthKey)
     },
     monthIncome() {
-      return this.finance.state.transactions.filter((t) => !t.scheduled && t.type !== 'transfer' && t.amount > 0 && monthKey(t.date) === this.currentMonthKey)
+      return this.finance.state.transactions.filter((t) => t.type !== 'transfer' && t.amount > 0 && monthKey(t.date) === this.currentMonthKey)
     },
     totalExpense() {
       return this.monthExpenses.reduce((s, t) => s + Math.abs(this.finance.amountInBase(t)), 0)
@@ -126,7 +126,7 @@ App.DashboardView = {
         months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: App.formatMonthLabel(d.getFullYear(), d.getMonth()), income: 0, expense: 0 })
       }
       for (const t of this.finance.state.transactions) {
-        if (t.scheduled || t.type === 'transfer') continue
+        if (t.type === 'transfer') continue
         const key = monthKey(t.date)
         const m = months.find((x) => x.key === key)
         if (!m) continue

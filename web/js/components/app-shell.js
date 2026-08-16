@@ -126,6 +126,7 @@ App.AppShell = {
         { to: '/accounts', label: 'Счета', icon: 'wallet' },
         { to: '/transactions', label: 'Операции', icon: 'list' },
         { to: '/reports', label: 'Отчёты', icon: 'chart' },
+        { to: '/budget', label: 'Бюджет', icon: 'target' },
         { to: '/settings', label: 'Настройки', icon: 'settings' },
       ],
     }
