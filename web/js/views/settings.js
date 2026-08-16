@@ -10,10 +10,9 @@ App.SettingsView = {
 
     <div v-else class="space-y-5">
       <div class="flex rounded-lg bg-ink-100 p-1 w-fit text-sm font-medium overflow-x-auto max-w-full">
+        <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'categories' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'categories'">{{ App.t('Категории') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'accounts' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'accounts'">{{ App.t('Карты и счета') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'currencies' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'currencies'">{{ App.t('Валюты') }}</button>
-        <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'categories' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'categories'">{{ App.t('Категории') }}</button>
-        <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'budget' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'budget'">{{ App.t('Бюджет') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'language' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'language'">{{ App.t('Язык') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'account' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'account'">{{ App.t('Аккаунт') }}</button>
       </div>
@@ -63,7 +62,7 @@ App.SettingsView = {
       <div v-if="tab === 'currencies'" class="rounded-xl bg-white border border-ink-200 p-4 md:p-5">
         <h2 class="text-sm font-semibold text-ink-900 mb-1">{{ App.t('Основная валюта') }}</h2>
         <p class="text-xs text-ink-400 mb-3">{{ App.t('В ней считаются баланс, отчёты и бюджет') }}</p>
-        <select :value="finance.state.baseCurrency" @change="App.financeStore.setBaseCurrency($event.target.value)"
+        <select :value="finance.state.baseCurrency" @change="App.financeStore.setDefaultCurrency($event.target.value)"
           class="w-full sm:w-64 rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500">
           <option v-for="c in activeCurrencies" :key="c.code" :value="c.code">{{ c.code }} — {{ App.t(c.name) }}</option>
         </select>
@@ -91,7 +90,7 @@ App.SettingsView = {
                   <span v-if="c.code === finance.state.baseCurrency" class="shrink-0 text-[10px] font-medium uppercase tracking-wide text-brand-600 bg-brand-100 rounded px-1.5 py-0.5">{{ App.t('Основная') }}</span>
                   <span v-if="c.archived" class="shrink-0 text-[10px] font-medium uppercase tracking-wide text-ink-400 bg-ink-100 rounded px-1.5 py-0.5">{{ App.t('Деактивирована') }}</span>
                 </span>
-                <span class="block text-xs text-ink-400 truncate">{{ c.code }}<span v-if="c.code !== 'RUB'"> · 1 {{ c.code }} = {{ c.rateToRub }} ₽</span></span>
+                <span class="block text-xs text-ink-400 truncate">{{ c.code }}<span v-if="c.code !== finance.state.baseCurrency"> · 1 {{ c.code }} = {{ c.rate }} {{ baseCurrencySymbol }}</span></span>
               </span>
             </span>
             <span class="flex items-center gap-1 shrink-0">
@@ -100,6 +99,9 @@ App.SettingsView = {
               </button>
               <button v-if="!c.archived" class="p-2 rounded-lg text-ink-500 hover:bg-ink-100 cursor-pointer" :aria-label="App.t('Деактивировать')" :title="App.t('Скрыть из выбора при создании счетов')" @click="App.financeStore.archiveCurrency(c.code)">
                 <app-icon name="archive" :size="16" />
+              </button>
+              <button v-else class="p-2 rounded-lg text-ink-500 hover:bg-ink-100 cursor-pointer" :aria-label="App.t('Активировать')" :title="App.t('Вернуть в выбор при создании счетов')" @click="App.financeStore.unarchiveCurrency(c.code)">
+                <app-icon name="restore" :size="16" />
               </button>
               <button v-if="!finance.isCurrencyInUse(c.code)" class="p-2 rounded-lg text-money-neg hover:bg-red-50 cursor-pointer" :aria-label="App.t('Удалить')" :title="App.t('Удалить валюту безвозвратно')" @click="App.financeStore.deleteCurrency(c.code)">
                 <app-icon name="trash" :size="16" />
@@ -113,18 +115,18 @@ App.SettingsView = {
         <div class="flex items-center justify-between px-4 md:px-5 py-3.5 border-b border-ink-200">
           <div>
             <h2 class="text-sm font-semibold text-ink-900">{{ App.t('Категории') }}</h2>
-            <p class="text-xs text-ink-400 mt-0.5">{{ App.tCount(filteredCategories.length, categoryKind === 'expense' ? 'expenseCategories' : 'incomeCategories') }}</p>
+            <p class="text-xs text-ink-400 mt-0.5">{{ App.tCount(filteredCategories.length, categoryType === 'expense' ? 'expenseCategories' : 'incomeCategories') }}</p>
           </div>
           <button class="flex items-center gap-1.5 rounded-lg bg-brand-600 text-white text-sm font-medium px-3.5 py-2 hover:bg-brand-500 transition-colors cursor-pointer"
-            @click="App.uiStore.openNewCategory(categoryKind)">
+            @click="App.uiStore.openNewCategory(categoryType)">
             <app-icon name="plus" :size="16" />
             <span class="hidden sm:inline">{{ App.t('Добавить категорию') }}</span>
           </button>
         </div>
         <div class="px-4 md:px-5 pt-3">
           <div class="flex rounded-lg bg-ink-100 p-1 w-fit text-xs font-medium">
-            <button class="px-3 py-1.5 rounded-md transition-colors cursor-pointer" :class="categoryKind === 'expense' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="categoryKind = 'expense'">{{ App.t('Расходы') }}</button>
-            <button class="px-3 py-1.5 rounded-md transition-colors cursor-pointer" :class="categoryKind === 'income' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="categoryKind = 'income'">{{ App.t('Доходы') }}</button>
+            <button class="px-3 py-1.5 rounded-md transition-colors cursor-pointer" :class="categoryType === 'expense' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="categoryType = 'expense'">{{ App.t('Расходы') }}</button>
+            <button class="px-3 py-1.5 rounded-md transition-colors cursor-pointer" :class="categoryType === 'income' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="categoryType = 'income'">{{ App.t('Доходы') }}</button>
           </div>
         </div>
         <ul class="divide-y divide-ink-100 mt-1">
@@ -145,6 +147,9 @@ App.SettingsView = {
               <button v-if="!c.archived" class="p-2 rounded-lg text-ink-500 hover:bg-ink-100 cursor-pointer" :aria-label="App.t('Деактивировать')" :title="App.t('Скрыть из выбора категории при новых операциях')" @click="App.financeStore.archiveCategory(c.id)">
                 <app-icon name="archive" :size="16" />
               </button>
+              <button v-else class="p-2 rounded-lg text-ink-500 hover:bg-ink-100 cursor-pointer" :aria-label="App.t('Активировать')" :title="App.t('Вернуть в выбор категории при новых операциях')" @click="App.financeStore.unarchiveCategory(c.id)">
+                <app-icon name="restore" :size="16" />
+              </button>
               <button v-if="!finance.isCategoryInUse(c.id)" class="p-2 rounded-lg text-money-neg hover:bg-red-50 cursor-pointer" :aria-label="App.t('Удалить')" :title="App.t('Удалить категорию безвозвратно')" @click="App.financeStore.deleteCategory(c.id)">
                 <app-icon name="trash" :size="16" />
               </button>
@@ -154,39 +159,10 @@ App.SettingsView = {
         </ul>
       </div>
 
-      <div v-if="tab === 'budget'" class="rounded-xl bg-white border border-ink-200 overflow-hidden">
-        <div class="flex items-center justify-between px-4 md:px-5 py-3.5 border-b border-ink-200 flex-wrap gap-2">
-          <div>
-            <h2 class="text-sm font-semibold text-ink-900">{{ App.t('Бюджет по категориям') }}</h2>
-            <p class="text-xs text-ink-400 mt-0.5">{{ App.t('Расходный лимит на месяц, в {currency}', { currency: finance.state.baseCurrency }) }}</p>
-          </div>
-          <input type="month" v-model="budgetMonth"
-            class="rounded-lg border border-ink-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
-        </div>
-        <div v-if="!hasBudgetThisMonth" class="px-4 md:px-5 py-3 border-b border-ink-200 bg-ink-50/60 flex items-center justify-between gap-2">
-          <p class="text-xs text-ink-500">{{ App.t('На этот месяц бюджет ещё не задан') }}</p>
-          <button class="shrink-0 text-xs font-medium text-brand-600 hover:underline cursor-pointer" @click="copyFromPreviousMonth">
-            {{ App.t('Скопировать из прошлого месяца') }}
-          </button>
-        </div>
-        <ul class="divide-y divide-ink-100">
-          <li v-for="c in budgetCategories" :key="c.id" class="flex items-center justify-between gap-3 px-4 md:px-5 py-3.5">
-            <span class="flex items-center gap-2.5 min-w-0">
-              <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ background: c.color }"></span>
-              <span class="text-sm text-ink-900 truncate">{{ App.t(c.name) }}</span>
-            </span>
-            <input type="number" min="0" step="100" placeholder="0"
-              :value="budgetAmount(c.id) || ''"
-              @change="updateBudget(c.id, $event.target.value)"
-              class="w-32 rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
-          </li>
-        </ul>
-      </div>
-
       <div v-if="tab === 'language'" class="rounded-xl bg-white border border-ink-200 p-4 md:p-5">
         <h2 class="text-sm font-semibold text-ink-900 mb-1">{{ App.t('Язык интерфейса') }}</h2>
         <p class="text-xs text-ink-400 mb-3">{{ App.t('Выберите язык, на котором отображается приложение') }}</p>
-        <select :value="App.i18nStore.locale" @change="App.setLocale($event.target.value)"
+        <select :value="App.i18nStore.locale" @change="App.authStore.changeLanguage($event.target.value)"
           class="w-full sm:w-64 rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500">
           <option v-for="code in App.SUPPORTED_LOCALES" :key="code" :value="code">{{ App.LOCALE_LABELS[code] }}</option>
         </select>
@@ -201,6 +177,7 @@ App.SettingsView = {
             <input v-model="accountForm.currentPassword" type="password" required autocomplete="current-password"
               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
           </div>
+          <p v-if="accountError" class="text-sm text-money-neg">{{ accountError }}</p>
           <div>
             <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Имя пользователя') }}</label>
             <input v-model="accountForm.newUsername" type="text" required autocomplete="username"
@@ -216,7 +193,6 @@ App.SettingsView = {
             <input v-model="accountForm.newPasswordConfirm" type="password" autocomplete="new-password"
               class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
           </div>
-          <p v-if="accountError" class="text-sm text-money-neg">{{ accountError }}</p>
           <p v-if="accountSuccess" class="text-sm text-money-pos">{{ accountSuccess }}</p>
           <button type="submit" :disabled="accountSaving"
             class="w-full sm:w-auto rounded-lg bg-brand-600 text-white text-sm font-medium py-2.5 px-5 hover:bg-brand-500 transition-colors cursor-pointer disabled:opacity-50">
@@ -227,13 +203,11 @@ App.SettingsView = {
     </div>
   `,
   data() {
-    const now = new Date()
     return {
       App,
       finance: App.financeStore,
-      tab: 'accounts',
-      categoryKind: 'expense',
-      budgetMonth: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`,
+      tab: 'categories',
+      categoryType: 'expense',
       accountForm: {
         currentPassword: '',
         newUsername: App.authStore.state.user?.username || '',
@@ -246,8 +220,11 @@ App.SettingsView = {
     }
   },
   computed: {
+    baseCurrencySymbol() {
+      return this.finance.currencyByCode.get(this.finance.state.baseCurrency)?.symbol ?? this.finance.state.baseCurrency
+    },
     filteredCategories() {
-      return this.finance.state.categories.filter((c) => c.kind === this.categoryKind)
+      return this.finance.state.categories.filter((c) => c.type === this.categoryType)
     },
     activeCurrencies() {
       const list = this.finance.state.currencies.filter((c) => !c.archived)
@@ -257,31 +234,8 @@ App.SettingsView = {
       }
       return list
     },
-    budgetCategories() {
-      return this.finance.state.categories.filter((c) => c.kind === 'expense' && !c.archived)
-    },
-    previousBudgetMonth() {
-      const [y, m] = this.budgetMonth.split('-').map(Number)
-      const d = new Date(y, m - 2, 1)
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-    },
-    hasBudgetThisMonth() {
-      return this.budgetCategories.some((c) => this.budgetAmount(c.id) > 0)
-    },
   },
   methods: {
-    budgetAmount(categoryId) {
-      return this.finance.budgetFor(categoryId, this.budgetMonth)
-    },
-    updateBudget(categoryId, value) {
-      App.financeStore.setCategoryBudget(categoryId, this.budgetMonth, Number(value) || 0)
-    },
-    copyFromPreviousMonth() {
-      for (const c of this.budgetCategories) {
-        const prev = this.finance.budgetFor(c.id, this.previousBudgetMonth)
-        if (prev > 0) App.financeStore.setCategoryBudget(c.id, this.budgetMonth, prev)
-      }
-    },
     async submitAccount() {
       this.accountError = ''
       this.accountSuccess = ''

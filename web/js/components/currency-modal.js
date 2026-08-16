@@ -18,7 +18,7 @@ App.CurrencyModal = {
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Код') }}</label>
-                  <input v-model="form.code" type="text" required maxlength="6" :placeholder="App.t('Например, GBP')" :disabled="isEditing"
+                  <input v-model="form.code" type="text" required maxlength="3" minlength="3" :placeholder="App.t('Например, GBP')" :disabled="isEditing"
                     class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 disabled:bg-ink-50 disabled:text-ink-400" />
                 </div>
                 <div>
@@ -34,13 +34,13 @@ App.CurrencyModal = {
                   class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
               </div>
 
-              <div v-if="isRub">
-                <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Курс к рублю') }}</label>
+              <div v-if="isBase">
+                <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Курс к {base}', { base: baseCode }) }}</label>
                 <div class="w-full rounded-lg border border-ink-200 bg-ink-50 px-3 py-2.5 text-sm text-ink-400">{{ App.t('Базовая валюта, курс 1') }}</div>
               </div>
               <div v-else>
-                <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Курс к рублю: 1 {code} = ? ₽', { code: form.code || '...' }) }}</label>
-                <input v-model="form.rateToRub" type="number" min="0" step="0.0001" required placeholder="Например, 90"
+                <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Курс к {base}: 1 {code} = ? {symbol}', { base: baseCode, code: form.code || '...', symbol: baseSymbol }) }}</label>
+                <input v-model="form.rate" type="number" min="0" step="0.0001" required placeholder="Например, 90"
                   class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
               </div>
 
@@ -50,6 +50,9 @@ App.CurrencyModal = {
                 <button v-if="!ui.editingCurrency.archived" type="button" :disabled="saving" :title="App.t('Скрыть из выбора при создании счетов')"
                   class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-ink-600 text-sm font-medium hover:bg-ink-50 cursor-pointer disabled:opacity-50"
                   @click="archive">{{ App.t('Деактивировать') }}</button>
+                <button v-else type="button" :disabled="saving" :title="App.t('Вернуть в выбор при создании счетов')"
+                  class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-ink-600 text-sm font-medium hover:bg-ink-50 cursor-pointer disabled:opacity-50"
+                  @click="unarchive">{{ App.t('Активировать') }}</button>
                 <button v-if="!inUse" type="button" :disabled="saving" :title="App.t('Удалить валюту безвозвратно')"
                   class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-money-neg text-sm font-medium hover:bg-red-50 cursor-pointer disabled:opacity-50"
                   @click="remove">{{ App.t('Удалить') }}</button>
@@ -84,8 +87,14 @@ App.CurrencyModal = {
       if (!this.isEditing) return false
       return this.finance.isCurrencyInUse(this.ui.editingCurrency.code)
     },
-    isRub() {
-      return this.form.code.trim().toUpperCase() === 'RUB'
+    baseCode() {
+      return this.finance.state.baseCurrency
+    },
+    baseSymbol() {
+      return this.finance.currencyByCode.get(this.baseCode)?.symbol ?? this.baseCode
+    },
+    isBase() {
+      return this.form.code.trim().toUpperCase() === this.baseCode
     },
   },
   watch: {
@@ -94,13 +103,13 @@ App.CurrencyModal = {
       this.error = ''
       const editing = this.ui.editingCurrency
       this.form = editing
-        ? { code: editing.code, symbol: editing.symbol, name: editing.name, rateToRub: editing.rateToRub ?? 1 }
+        ? { code: editing.code, symbol: editing.symbol, name: editing.name, rate: editing.rate ?? 1 }
         : this.emptyForm()
     },
   },
   methods: {
     emptyForm() {
-      return { code: '', symbol: '', name: '', rateToRub: '' }
+      return { code: '', symbol: '', name: '', rate: '' }
     },
     close() {
       App.uiStore.closeCurrencyModal()
@@ -114,11 +123,11 @@ App.CurrencyModal = {
         this.error = App.t('Такой код валюты уже есть')
         return
       }
-      let rateToRub = 1
-      if (code !== 'RUB') {
-        rateToRub = Number(this.form.rateToRub)
-        if (!rateToRub || rateToRub <= 0) {
-          this.error = App.t('Укажите курс к рублю')
+      let rate = 1
+      if (code !== this.baseCode) {
+        rate = Number(this.form.rate)
+        if (!rate || rate <= 0) {
+          this.error = App.t('Укажите курс к {base}', { base: this.baseCode })
           return
         }
       }
@@ -126,9 +135,9 @@ App.CurrencyModal = {
       this.saving = true
       try {
         if (this.isEditing) {
-          await this.finance.updateCurrency({ code, symbol, name, rateToRub, archived: this.ui.editingCurrency.archived })
+          await this.finance.updateCurrency({ code, symbol, name, rate, default: this.ui.editingCurrency.is_default, archived: this.ui.editingCurrency.archived })
         } else {
-          await this.finance.addCurrency({ code, symbol, name, rateToRub })
+          await this.finance.addCurrency({ code, symbol, name, rate })
         }
         this.close()
       } finally {
@@ -140,6 +149,16 @@ App.CurrencyModal = {
       this.saving = true
       try {
         await this.finance.archiveCurrency(this.ui.editingCurrency.code)
+        this.close()
+      } finally {
+        this.saving = false
+      }
+    },
+    async unarchive() {
+      if (!this.ui.editingCurrency) return
+      this.saving = true
+      try {
+        await this.finance.unarchiveCurrency(this.ui.editingCurrency.code)
         this.close()
       } finally {
         this.saving = false

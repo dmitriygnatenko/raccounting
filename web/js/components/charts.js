@@ -3,6 +3,13 @@ window.App = window.App || {};
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif"
 Chart.defaults.color = '#64748b'
 
+// Shared y-axis tick formatter: plain numbers below 1000, "k" above it — avoids Chart.js's default
+// auto-scaling producing fractional-thousand ticks like "0.0001k" when every value is 0.
+function formatAxisValue(v) {
+  const n = Math.abs(Number(v))
+  return n >= 1000 ? `${(n / 1000).toLocaleString('ru-RU', { maximumFractionDigits: 1 })}k` : n.toLocaleString('ru-RU')
+}
+
 App.DonutChart = {
   props: { labels: Array, values: Array, colors: Array },
   template: `<canvas ref="canvas"></canvas>`,
@@ -78,8 +85,9 @@ App.BarChart = {
         scales: {
           x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
           y: {
+            beginAtZero: true,
             grid: { color: '#f1f5f9' },
-            ticks: { color: '#94a3b8', callback: (v) => `${Math.abs(Number(v)) / 1000}k` },
+            ticks: { color: '#94a3b8', precision: 0, callback: formatAxisValue },
           },
         },
       },
@@ -138,7 +146,11 @@ App.LineChart = {
         },
         scales: {
           x: { grid: { display: false }, ticks: { color: '#94a3b8', maxTicksLimit: 8 } },
-          y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', callback: (v) => `${Number(v) / 1000}k` } },
+          y: {
+            beginAtZero: true,
+            grid: { color: '#f1f5f9' },
+            ticks: { color: '#94a3b8', precision: 0, callback: formatAxisValue },
+          },
         },
       },
     })

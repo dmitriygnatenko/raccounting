@@ -18,19 +18,18 @@ function createFinanceStore() {
   async function load() {
     if (state.loaded) return
     state.loading = true
-    const [a, c, t, cur, settings, budgets] = await Promise.all([
+    const [a, c, t, cur, budgets] = await Promise.all([
       App.api.getAccounts(),
       App.api.getCategories(),
       App.api.getTransactions(),
       App.api.getCurrencies(),
-      App.api.getSettings(),
       App.api.getCategoryBudgets(),
     ])
     state.accounts = a
     state.categories = c
     state.transactions = t
     state.currencies = cur
-    state.baseCurrency = settings.baseCurrencyCode ?? 'RUB'
+    state.baseCurrency = cur.find((c) => c.is_default)?.code ?? cur[0]?.code ?? 'RUB'
     state.categoryBudgets = budgets
     state.loading = false
     state.loaded = true
@@ -52,13 +51,13 @@ function createFinanceStore() {
   const accountById = computed(() => new Map(state.accounts.map((a) => [a.id, a])))
   const currencyByCode = computed(() => new Map(state.currencies.map((c) => [c.code, c])))
 
-  function rateToRub(code) {
-    return currencyByCode.value.get(code)?.rateToRub ?? 1
+  function currencyRate(code) {
+    return currencyByCode.value.get(code)?.rate ?? 1
   }
 
   function toBase(amount, code) {
     if (code === state.baseCurrency) return amount
-    return (amount * rateToRub(code)) / rateToRub(state.baseCurrency)
+    return (amount * currencyRate(code)) / currencyRate(state.baseCurrency)
   }
 
   function amountInBase(tx) {
@@ -68,17 +67,6 @@ function createFinanceStore() {
 
   const totalBalanceBase = computed(() =>
     activeAccounts.value.reduce((sum, a) => sum + toBase(a.balance, a.currency), 0),
-  )
-
-  async function setBaseCurrency(code) {
-    state.baseCurrency = code
-    await App.api.updateSettings({ baseCurrencyCode: code })
-  }
-  const upcoming = computed(() =>
-    state.transactions
-      .filter((t) => t.scheduled)
-      .sort((a, b) => (a.date > b.date ? 1 : -1))
-      .slice(0, 6),
   )
 
   // Account balances are maintained authoritatively and transactionally by the backend (see
@@ -116,14 +104,16 @@ function createFinanceStore() {
     return { legFrom, legTo }
   }
 
-  async function deleteTransfer(transferId) {
-    await App.api.deleteTransfer(transferId)
-    state.transactions = state.transactions.filter((t) => t.transferId !== transferId)
+  async function deleteTransfer(id) {
+    const leg = state.transactions.find((t) => t.id === id)
+    const pairedId = leg?.transferTransactionId
+    await App.api.deleteTransfer(id)
+    state.transactions = state.transactions.filter((t) => t.id !== id && t.id !== pairedId)
     await refreshAccounts()
   }
 
-  async function updateTransfer(transferId, payload) {
-    await deleteTransfer(transferId)
+  async function updateTransfer(id, payload) {
+    await deleteTransfer(id)
     return addTransfer(payload)
   }
 
@@ -155,16 +145,23 @@ function createFinanceStore() {
     state.accounts = state.accounts.filter((a) => a.id !== id)
   }
 
+  // Which currency is default is stored per-row on currencies.is_default, and the backend clears
+  // every other row's flag atomically whenever one is set — so after any currency mutation we
+  // re-fetch the whole list rather than patch it locally, the same reasoning as refreshAccounts().
+  async function refreshCurrencies() {
+    state.currencies = await App.api.getCurrencies()
+    state.baseCurrency = state.currencies.find((c) => c.is_default)?.code ?? state.baseCurrency
+  }
+
   async function addCurrency(currency) {
-    const created = await App.api.createCurrency(currency)
-    state.currencies.push(created)
-    return created
+    // The very first currency has nothing to be relative to, so it becomes the default.
+    await App.api.createCurrency({ ...currency, default: state.currencies.length === 0 })
+    await refreshCurrencies()
   }
 
   async function updateCurrency(currency) {
     await App.api.updateCurrency(currency)
-    const idx = state.currencies.findIndex((c) => c.code === currency.code)
-    if (idx !== -1) state.currencies[idx] = currency
+    await refreshCurrencies()
   }
 
   function isCurrencyInUse(code) {
@@ -174,13 +171,25 @@ function createFinanceStore() {
   async function archiveCurrency(code) {
     const cur = state.currencies.find((c) => c.code === code)
     if (!cur) return
-    await updateCurrency({ ...cur, archived: true })
+    await updateCurrency({ code: cur.code, symbol: cur.symbol, name: cur.name, rate: cur.rate, default: cur.is_default, archived: true })
+  }
+
+  async function unarchiveCurrency(code) {
+    const cur = state.currencies.find((c) => c.code === code)
+    if (!cur) return
+    await updateCurrency({ code: cur.code, symbol: cur.symbol, name: cur.name, rate: cur.rate, default: cur.is_default, archived: false })
   }
 
   async function deleteCurrency(code) {
     if (isCurrencyInUse(code)) return
     await App.api.deleteCurrency(code)
-    state.currencies = state.currencies.filter((c) => c.code !== code)
+    await refreshCurrencies()
+  }
+
+  async function setDefaultCurrency(code) {
+    const cur = state.currencies.find((c) => c.code === code)
+    if (!cur) return
+    await updateCurrency({ code: cur.code, symbol: cur.symbol, name: cur.name, rate: cur.rate, default: true, archived: cur.archived })
   }
 
   async function addCategory(category) {
@@ -206,6 +215,12 @@ function createFinanceStore() {
     await updateCategory({ ...cat, archived: true })
   }
 
+  async function unarchiveCategory(id) {
+    const cat = state.categories.find((c) => c.id === id)
+    if (!cat) return
+    await updateCategory({ ...cat, archived: false })
+  }
+
   async function deleteCategory(id) {
     if (isCategoryInUse(id)) return
     await App.api.deleteCategory(id)
@@ -221,8 +236,6 @@ function createFinanceStore() {
     currencyByCode,
     toBase,
     amountInBase,
-    setBaseCurrency,
-    upcoming,
     load,
     addTransaction,
     updateTransaction,
@@ -239,11 +252,14 @@ function createFinanceStore() {
     updateCurrency,
     isCurrencyInUse,
     archiveCurrency,
+    unarchiveCurrency,
     deleteCurrency,
+    setDefaultCurrency,
     addCategory,
     updateCategory,
     isCategoryInUse,
     archiveCategory,
+    unarchiveCategory,
     deleteCategory,
     budgetFor,
     setCategoryBudget,
@@ -260,7 +276,7 @@ function createUiStore() {
     editingCurrency: null,
     categoryModalOpen: false,
     editingCategory: null,
-    newCategoryKind: 'expense',
+    newCategoryType: 'expense',
     mobileMenuOpen: false,
   })
 
@@ -300,9 +316,9 @@ function createUiStore() {
     state.currencyModalOpen = false
     state.editingCurrency = null
   }
-  function openNewCategory(kind) {
+  function openNewCategory(type) {
     state.editingCategory = null
-    state.newCategoryKind = kind || 'expense'
+    state.newCategoryType = type || 'expense'
     state.categoryModalOpen = true
   }
   function openEditCategory(category) {

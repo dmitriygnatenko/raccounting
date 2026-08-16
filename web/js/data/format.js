@@ -27,4 +27,11 @@ App.formatDateLong = function (iso) {
 App.formatMonthLabel = function (year, month) {
   return new Intl.DateTimeFormat(intlLocale(), { month: 'short' }).format(new Date(year, month, 1))
 }
+
+// monthKey is 'YYYY-MM', as used for budgetMonth throughout the app.
+App.formatMonthYear = function (monthKey) {
+  const [year, month] = monthKey.split('-').map(Number)
+  const label = new Intl.DateTimeFormat(intlLocale(), { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1))
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
 })();

@@ -17,6 +17,7 @@ const routes = {
   '/accounts': { title: 'Счета', view: 'accounts-view' },
   '/transactions': { title: 'Операции', view: 'transactions-view' },
   '/reports': { title: 'Отчёты', view: 'reports-view' },
+  '/budget': { title: 'Бюджет', view: 'budget-view' },
   '/settings': { title: 'Настройки', view: 'settings-view' },
 }
 

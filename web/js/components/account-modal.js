@@ -31,16 +31,18 @@ App.AccountModal = {
                 </div>
                 <div>
                   <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Валюта') }}</label>
-                  <select v-model="form.currency" required
-                    class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500">
+                  <select v-model="form.currency" required :disabled="noCurrencies"
+                    class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 disabled:opacity-50">
                     <option v-for="c in currencyOptions" :key="c" :value="c">{{ c }}</option>
                   </select>
                 </div>
               </div>
 
+              <p v-if="noCurrencies" class="text-xs text-money-neg">{{ App.t('Сначала добавьте валюту в настройках') }}</p>
+
               <div v-if="!isEditing">
                 <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Начальный баланс') }}</label>
-                <input v-model="form.balance" type="number" step="0.01" placeholder="0"
+                <input v-model="form.balance" type="number" step="1" placeholder="0"
                   class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
               </div>
               <div v-else>
@@ -61,7 +63,7 @@ App.AccountModal = {
               </div>
               <p v-if="isEditing && inUse" class="text-xs text-ink-400 text-center">{{ App.t('По счёту есть операции — удалить нельзя, можно деактивировать') }}</p>
 
-              <button type="submit" :disabled="saving"
+              <button type="submit" :disabled="saving || noCurrencies"
                 class="w-full rounded-lg bg-brand-600 text-white text-sm font-medium py-2.5 hover:bg-brand-500 transition-colors cursor-pointer disabled:opacity-50">
                 {{ saving ? App.t('Сохранение…') : App.t(isEditing ? 'Сохранить' : 'Добавить') }}
               </button>
@@ -93,6 +95,9 @@ App.AccountModal = {
       if (this.form.currency && !codes.includes(this.form.currency)) codes.push(this.form.currency)
       return codes
     },
+    noCurrencies() {
+      return !this.isEditing && this.finance.state.currencies.filter((c) => !c.archived).length === 0
+    },
   },
   watch: {
     'ui.accountModalOpen'(open) {
@@ -116,13 +121,13 @@ App.AccountModal = {
       App.uiStore.closeAccountModal()
     },
     async submit() {
-      if (!this.form.name.trim()) return
+      if (!this.form.name.trim() || this.noCurrencies) return
       this.saving = true
       const payload = {
         name: this.form.name.trim(),
         type: this.form.type,
         currency: this.form.currency,
-        balance: Number(this.form.balance) || 0,
+        balance: Math.round(Number(this.form.balance) || 0),
       }
       try {
         if (this.isEditing) {

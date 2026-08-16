@@ -25,16 +25,16 @@ App.ReportsView = {
       <div class="grid grid-cols-3 gap-3 md:gap-4">
         <div class="rounded-xl bg-white border border-ink-200 p-4">
           <p class="text-xs font-medium text-ink-500 mb-1.5">{{ App.t('Доходы') }}</p>
-          <p class="text-base md:text-xl font-semibold text-money-pos">+{{ App.formatMoney(summary.income, finance.state.baseCurrency) }}</p>
+          <p class="text-base md:text-xl font-semibold" :class="summary.income ? 'text-money-pos' : 'text-ink-950'">{{ summary.income ? '+' : '' }}{{ App.formatMoney(summary.income, finance.state.baseCurrency) }}</p>
         </div>
         <div class="rounded-xl bg-white border border-ink-200 p-4">
           <p class="text-xs font-medium text-ink-500 mb-1.5">{{ App.t('Расходы') }}</p>
-          <p class="text-base md:text-xl font-semibold text-money-neg">−{{ App.formatMoney(summary.expense, finance.state.baseCurrency) }}</p>
+          <p class="text-base md:text-xl font-semibold" :class="summary.expense ? 'text-money-neg' : 'text-ink-950'">{{ summary.expense ? '−' : '' }}{{ App.formatMoney(summary.expense, finance.state.baseCurrency) }}</p>
         </div>
         <div class="rounded-xl bg-white border border-ink-200 p-4">
           <p class="text-xs font-medium text-ink-500 mb-1.5">{{ App.t('Итого') }}</p>
           <p class="text-base md:text-xl font-semibold" :class="summary.net >= 0 ? 'text-ink-950' : 'text-money-neg'">
-            {{ summary.net >= 0 ? '+' : '−' }}{{ App.formatMoney(Math.abs(summary.net), finance.state.baseCurrency) }}
+            {{ summary.net > 0 ? '+' : summary.net < 0 ? '−' : '' }}{{ App.formatMoney(Math.abs(summary.net), finance.state.baseCurrency) }}
           </p>
         </div>
       </div>
@@ -159,7 +159,7 @@ App.ReportsView = {
   },
   computed: {
     periodTransactions() {
-      return this.finance.state.transactions.filter((t) => !t.scheduled && this.inPeriod(t.date, this.period, this.dateFrom, this.dateTo))
+      return this.finance.state.transactions.filter((t) => this.inPeriod(t.date, this.period, this.dateFrom, this.dateTo))
     },
     summary() {
       const nonTransfer = this.periodTransactions.filter((t) => t.type !== 'transfer')
@@ -186,7 +186,6 @@ App.ReportsView = {
     },
     balanceHistory() {
       const relevant = this.finance.state.transactions
-        .filter((t) => !t.scheduled)
         .slice()
         .sort((a, b) => (a.date < b.date ? -1 : 1))
 
@@ -226,7 +225,7 @@ App.ReportsView = {
       const monthKey = this.budgetMonthKey
       const spentByCategory = new Map()
       for (const t of this.finance.state.transactions) {
-        if (t.scheduled || t.amount >= 0 || t.type === 'transfer') continue
+        if (t.amount >= 0 || t.type === 'transfer') continue
         const d = new Date(t.date)
         if (d.getFullYear() !== target.getFullYear() || d.getMonth() !== target.getMonth()) continue
         const key = t.categoryId ?? 'other-expense'
