@@ -115,7 +115,7 @@ App.SettingsView = {
         <div class="flex items-center justify-between px-4 md:px-5 py-3.5 border-b border-ink-200">
           <div>
             <h2 class="text-sm font-semibold text-ink-900">{{ App.t('Категории') }}</h2>
-            <p class="text-xs text-ink-400 mt-0.5">{{ App.tCount(filteredCategories.length, categoryType === 'expense' ? 'expenseCategories' : 'incomeCategories') }}</p>
+            <p class="text-xs text-ink-400 mt-0.5">{{ App.tCount(filteredCategories.length, categoryType === App.CategoryType.EXPENSE ? 'expenseCategories' : 'incomeCategories') }}</p>
           </div>
           <button class="flex items-center gap-1.5 rounded-lg bg-brand-600 text-white text-sm font-medium px-3.5 py-2 hover:bg-brand-500 transition-colors cursor-pointer"
             @click="App.uiStore.openNewCategory(categoryType)">
@@ -125,8 +125,8 @@ App.SettingsView = {
         </div>
         <div class="px-4 md:px-5 pt-3">
           <div class="flex rounded-lg bg-ink-100 p-1 w-fit text-xs font-medium">
-            <button class="px-3 py-1.5 rounded-md transition-colors cursor-pointer" :class="categoryType === 'expense' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="categoryType = 'expense'">{{ App.t('Расходы') }}</button>
-            <button class="px-3 py-1.5 rounded-md transition-colors cursor-pointer" :class="categoryType === 'income' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="categoryType = 'income'">{{ App.t('Доходы') }}</button>
+            <button class="px-3 py-1.5 rounded-md transition-colors cursor-pointer" :class="categoryType === App.CategoryType.EXPENSE ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="categoryType = App.CategoryType.EXPENSE">{{ App.t('Расходы') }}</button>
+            <button class="px-3 py-1.5 rounded-md transition-colors cursor-pointer" :class="categoryType === App.CategoryType.INCOME ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="categoryType = App.CategoryType.INCOME">{{ App.t('Доходы') }}</button>
           </div>
         </div>
         <ul class="divide-y divide-ink-100 mt-1">
@@ -207,7 +207,7 @@ App.SettingsView = {
       App,
       finance: App.financeStore,
       tab: 'categories',
-      categoryType: 'expense',
+      categoryType: App.CategoryType.EXPENSE,
       accountForm: {
         currentPassword: '',
         newUsername: App.authStore.state.user?.username || '',

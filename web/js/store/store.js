@@ -276,7 +276,7 @@ function createUiStore() {
     editingCurrency: null,
     categoryModalOpen: false,
     editingCategory: null,
-    newCategoryType: 'expense',
+    newCategoryType: App.CategoryType.EXPENSE,
     mobileMenuOpen: false,
   })
 
@@ -318,7 +318,7 @@ function createUiStore() {
   }
   function openNewCategory(type) {
     state.editingCategory = null
-    state.newCategoryType = type || 'expense'
+    state.newCategoryType = type || App.CategoryType.EXPENSE
     state.categoryModalOpen = true
   }
   function openEditCategory(category) {

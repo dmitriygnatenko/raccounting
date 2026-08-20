@@ -10,7 +10,7 @@ import (
 
 type categoryRequest struct {
 	Name     string `json:"name"`
-	Type     string `json:"type"`
+	Type     uint8  `json:"type"`
 	Color    string `json:"color"`
 	Archived bool   `json:"archived"`
 }

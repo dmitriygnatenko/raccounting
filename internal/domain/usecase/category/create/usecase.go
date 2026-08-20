@@ -41,11 +41,9 @@ func (uc *UseCase) Execute(
 	name := strings.TrimSpace(input.Name)
 	color := usecase.ResolveColor(input.Color)
 
-	categoryType, _ := entity.ParseCategoryType(input.Type)
-
 	category, err := uc.categoryRepository.Create(ctx, port.CategoryCreateRequest{
 		Name:  name,
-		Type:  categoryType,
+		Type:  entity.CategoryType(input.Type),
 		Color: color,
 	})
 	if err != nil {

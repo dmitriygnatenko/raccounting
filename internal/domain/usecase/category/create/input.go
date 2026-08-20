@@ -8,10 +8,11 @@ import (
 	"raccounting/internal/domain/usecase"
 )
 
-// Input is what CreateCategory needs to create a new category.
+// Input is what CreateCategory needs to create a new category. Type is the bare numeric
+// entity.CategoryType value — see entity.CategoryTypes.
 type Input struct {
 	Name  string
-	Type  string
+	Type  uint8
 	Color string
 }
 
