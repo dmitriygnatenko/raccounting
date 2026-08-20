@@ -51,7 +51,7 @@ func (uc *UseCase) Execute(
 	})
 	if err != nil {
 		if domainError.IsNotFoundError(err) {
-			return Output{}, err
+			return Output{}, &domainError.NotFoundError{Message: "Currency not found"}
 		}
 
 		slog.ErrorContext(ctx, "update currency: save", "code", input.Code, "error", err)

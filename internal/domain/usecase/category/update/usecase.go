@@ -48,7 +48,7 @@ func (uc *UseCase) Execute(
 	})
 	if err != nil {
 		if domainError.IsNotFoundError(err) {
-			return Output{}, err
+			return Output{}, &domainError.NotFoundError{Message: "Category not found"}
 		}
 
 		slog.ErrorContext(ctx, "update category: save", "id", input.ID, "error", err)

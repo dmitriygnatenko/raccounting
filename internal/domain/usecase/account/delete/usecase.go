@@ -34,8 +34,12 @@ func (uc *UseCase) Execute(
 ) error {
 	err := uc.accountRepository.Delete(ctx, input.ID)
 	if err != nil {
-		if domainError.IsNotFoundError(err) || domainError.IsConflictError(err) {
-			return err
+		if domainError.IsNotFoundError(err) {
+			return &domainError.NotFoundError{Message: "Account not found"}
+		}
+
+		if domainError.IsConflictError(err) {
+			return &domainError.ConflictError{Message: "This account is in use — remove its transactions first"}
 		}
 
 		slog.ErrorContext(ctx, "delete account: delete", "id", input.ID, "error", err)

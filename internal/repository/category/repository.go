@@ -12,25 +12,34 @@ import (
 	"raccounting/internal/storage/model"
 )
 
-const notFoundMessage = "Category not found"
-
-// inUseMessage is what Delete reports when a transaction still references the category.
-const inUseMessage = "This category is in use — remove its transactions first"
+//go:generate go tool mockgen -source=repository.go -destination=mocks/storage_mock.go -package=mocks
 
 // Storage is the slice of the DB adapter this repository uses — the categories table and nothing
 // else.
 type Storage interface {
 	ListCategories(ctx context.Context) ([]model.Category, error)
 	// ExistsCategory reports whether a category with this id exists.
-	ExistsCategory(ctx context.Context, id uint64) (bool, error)
-	CreateCategory(ctx context.Context, req port.CategoryCreateRequest) (id uint64, err error)
+	ExistsCategory(
+		ctx context.Context,
+		id uint64,
+	) (bool, error)
+	CreateCategory(
+		ctx context.Context,
+		req port.CategoryCreateRequest,
+	) (id uint64, err error)
 	// UpdateCategory changes name/color/status, returning the full updated row. found is false if
 	// no category with this id exists.
-	UpdateCategory(ctx context.Context, req port.CategoryUpdateRequest) (row model.Category, found bool, err error)
+	UpdateCategory(
+		ctx context.Context,
+		req port.CategoryUpdateRequest,
+	) (row model.Category, found bool, err error)
 	// DeleteCategory removes a category row. found is false if no category with this id existed. A
 	// FOREIGN KEY violation (the category is still referenced by a transaction) comes back wrapped
 	// in storageError.ForeignKeyViolationError.
-	DeleteCategory(ctx context.Context, id uint64) (found bool, err error)
+	DeleteCategory(
+		ctx context.Context,
+		id uint64,
+	) (found bool, err error)
 }
 
 // Repository implements port.CategoryRepository.
@@ -64,7 +73,9 @@ func (r *Repository) Exists(ctx context.Context, id uint64) (bool, error) {
 }
 
 // Create inserts a new category and returns it.
-func (r *Repository) Create(ctx context.Context, req port.CategoryCreateRequest) (entity.Category, error) {
+func (r *Repository) Create(
+	ctx context.Context, req port.CategoryCreateRequest,
+) (entity.Category, error) {
 	id, err := r.storage.CreateCategory(ctx, req)
 	if err != nil {
 		return entity.Category{}, err
@@ -79,34 +90,38 @@ func (r *Repository) Create(ctx context.Context, req port.CategoryCreateRequest)
 	}, nil
 }
 
-// Update changes an existing category's name/color/archived flag.
-func (r *Repository) Update(ctx context.Context, req port.CategoryUpdateRequest) (entity.Category, error) {
+// Update changes an existing category's name/color/archived flag. An unknown id is reported as a
+// message-less *domainerror.NotFoundError — the use case supplies the message.
+func (r *Repository) Update(
+	ctx context.Context, req port.CategoryUpdateRequest,
+) (entity.Category, error) {
 	row, found, err := r.storage.UpdateCategory(ctx, req)
 	if err != nil {
 		return entity.Category{}, err
 	}
 
 	if !found {
-		return entity.Category{}, &domainerror.NotFoundError{Message: notFoundMessage}
+		return entity.Category{}, &domainerror.NotFoundError{}
 	}
 
 	return row.ToEntity(), nil
 }
 
 // Delete removes a category, reporting a *domainerror.NotFoundError if it doesn't exist, or a
-// *domainerror.ConflictError if it's still referenced by a transaction.
+// *domainerror.ConflictError if it's still referenced by a transaction. Both are message-less — the
+// use case supplies the message.
 func (r *Repository) Delete(ctx context.Context, id uint64) error {
 	found, err := r.storage.DeleteCategory(ctx, id)
 	if err != nil {
 		if errors.Is(err, storageError.ForeignKeyViolationError) {
-			return &domainerror.ConflictError{Message: inUseMessage}
+			return &domainerror.ConflictError{}
 		}
 
 		return err
 	}
 
 	if !found {
-		return &domainerror.NotFoundError{Message: notFoundMessage}
+		return &domainerror.NotFoundError{}
 	}
 
 	return nil

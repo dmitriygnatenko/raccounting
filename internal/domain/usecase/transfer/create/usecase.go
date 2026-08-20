@@ -1,7 +1,7 @@
 // Package create is the CreateTransfer use case: it validates both accounts exist, then inserts two
 // linked transaction rows pointing at each other's id via transfer_transaction_id (debit leg
 // negative, credit leg positive, type "transfer", no category) and updates both account balances —
-// all atomically, in one DB transaction (see port.TransferRepository). Mirrors
+// all atomically, in one DB transaction (see port.TransactionRepository.CreateTransfer). Mirrors
 // App.api.createTransfer in the frontend.
 package create
 
@@ -19,18 +19,18 @@ import (
 
 // UseCase implements CreateTransfer.
 type UseCase struct {
-	transferRepository port.TransferRepository
-	accountRepository  port.AccountRepository
+	transactionRepository port.TransactionRepository
+	accountRepository     port.AccountRepository
 }
 
 // New builds a UseCase from its dependencies.
 func New(
-	transferRepository port.TransferRepository,
+	transactionRepository port.TransactionRepository,
 	accountRepository port.AccountRepository,
 ) *UseCase {
 	return &UseCase{
-		transferRepository: transferRepository,
-		accountRepository:  accountRepository,
+		transactionRepository: transactionRepository,
+		accountRepository:     accountRepository,
 	}
 }
 
@@ -88,7 +88,7 @@ func (uc *UseCase) Execute(
 
 	memo := strings.TrimSpace(input.Memo)
 
-	result, err := uc.transferRepository.Create(ctx, port.TransferCreateRequest{
+	result, err := uc.transactionRepository.CreateTransfer(ctx, port.TransferCreateRequest{
 		FromAccountID:    input.FromAccountID,
 		FromCurrencyCode: fromAccount.CurrencyCode,
 		ToAccountID:      input.ToAccountID,
@@ -101,7 +101,7 @@ func (uc *UseCase) Execute(
 	})
 	if err != nil {
 		if domainError.IsConflictError(err) {
-			return Output{}, err
+			return Output{}, &domainError.ConflictError{Message: "This would overdraw the account"}
 		}
 
 		slog.ErrorContext(ctx, "create transfer: save", "error", err)

@@ -1,7 +1,7 @@
 // Package delete is the DeleteTransfer use case: it removes both legs of a transfer and reverses
-// their balance effects, atomically, in one DB transaction (see port.TransferRepository). Mirrors
-// App.api.deleteTransfer in the frontend mock. It has no output.go — Execute only ever reports
-// success or an error.
+// their balance effects, atomically, in one DB transaction (see
+// port.TransactionRepository.DeleteTransfer). Mirrors App.api.deleteTransfer in the frontend mock.
+// It has no output.go — Execute only ever reports success or an error.
 package delete
 
 import (
@@ -15,15 +15,15 @@ import (
 
 // UseCase implements DeleteTransfer.
 type UseCase struct {
-	transferRepository port.TransferRepository
+	transactionRepository port.TransactionRepository
 }
 
 // New builds a UseCase from its dependencies.
 func New(
-	transferRepository port.TransferRepository,
+	transactionRepository port.TransactionRepository,
 ) *UseCase {
 	return &UseCase{
-		transferRepository: transferRepository,
+		transactionRepository: transactionRepository,
 	}
 }
 
@@ -32,10 +32,10 @@ func (uc *UseCase) Execute(
 	ctx context.Context,
 	input Input,
 ) error {
-	found, err := uc.transferRepository.Delete(ctx, input.ID)
+	found, err := uc.transactionRepository.DeleteTransfer(ctx, input.ID)
 	if err != nil {
 		if domainError.IsConflictError(err) {
-			return err
+			return &domainError.ConflictError{Message: "This would overdraw the account"}
 		}
 
 		slog.ErrorContext(ctx, "delete transfer: delete", "id", input.ID, "error", err)

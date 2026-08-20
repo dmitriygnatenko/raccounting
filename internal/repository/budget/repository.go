@@ -10,6 +10,8 @@ import (
 	"raccounting/internal/storage/model"
 )
 
+//go:generate go tool mockgen -source=repository.go -destination=mocks/storage_mock.go -package=mocks
+
 // Storage is the slice of the mysql adapter this repository uses — the budgets table and
 // nothing else.
 type Storage interface {

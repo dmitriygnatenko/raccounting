@@ -34,8 +34,14 @@ func (uc *UseCase) Execute(
 ) error {
 	err := uc.currencyRepository.Delete(ctx, input.Code)
 	if err != nil {
-		if domainError.IsNotFoundError(err) || domainError.IsConflictError(err) {
-			return err
+		if domainError.IsNotFoundError(err) {
+			return &domainError.NotFoundError{Message: "Currency not found"}
+		}
+
+		if domainError.IsConflictError(err) {
+			return &domainError.ConflictError{
+				Message: "This currency is in use — remove or recode its accounts first",
+			}
 		}
 
 		slog.ErrorContext(ctx, "delete currency: delete", "code", input.Code, "error", err)

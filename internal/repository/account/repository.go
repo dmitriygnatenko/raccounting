@@ -13,28 +13,36 @@ import (
 	"raccounting/internal/storage/model"
 )
 
-const notFoundMessage = "Account not found"
-
-// inUseMessage is what Delete reports when a transaction still references the account.
-const inUseMessage = "This account is in use — remove its transactions first"
-
-// insufficientBalanceMessage is what Create reports for a negative opening balance.
-const insufficientBalanceMessage = "Opening balance can't be negative"
+//go:generate go tool mockgen -source=repository.go -destination=mocks/storage_mock.go -package=mocks
 
 // Storage is the slice of the DB adapter this repository uses — the accounts table and nothing
 // else.
 type Storage interface {
 	ListAccounts(ctx context.Context) ([]model.Account, error)
 	// FindAccountByID returns sql.ErrNoRows when no account with this id exists.
-	FindAccountByID(ctx context.Context, id uint64) (model.Account, error)
-	CreateAccount(ctx context.Context, req port.AccountCreateRequest) (id uint64, err error)
+	FindAccountByID(
+		ctx context.Context,
+		id uint64,
+	) (model.Account, error)
+	// CreateAccount inserts an account row and returns its new id. A negative balance comes back
+	// wrapped in storageError.InsufficientBalanceError.
+	CreateAccount(
+		ctx context.Context,
+		req port.AccountCreateRequest,
+	) (id uint64, err error)
 	// UpdateAccount changes name/type/currency/status, returning the full updated row. found is
 	// false if no account with this id exists.
-	UpdateAccount(ctx context.Context, req port.AccountUpdateRequest) (row model.Account, found bool, err error)
+	UpdateAccount(
+		ctx context.Context,
+		req port.AccountUpdateRequest,
+	) (row model.Account, found bool, err error)
 	// DeleteAccount removes an account row. found is false if no account with this id existed. A
 	// FOREIGN KEY violation (the account is still referenced by a transaction) comes back wrapped in
 	// storageError.ForeignKeyViolationError.
-	DeleteAccount(ctx context.Context, id uint64) (found bool, err error)
+	DeleteAccount(
+		ctx context.Context,
+		id uint64,
+	) (found bool, err error)
 }
 
 // Repository implements port.AccountRepository.
@@ -62,12 +70,13 @@ func (r *Repository) List(ctx context.Context) ([]entity.Account, error) {
 	return accounts, nil
 }
 
-// FindByID looks up an account by id.
+// FindByID looks up an account by id. An unknown id is reported as a message-less
+// *domainerror.NotFoundError — the use case supplies the message.
 func (r *Repository) FindByID(ctx context.Context, id uint64) (entity.Account, error) {
 	row, err := r.storage.FindAccountByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return entity.Account{}, &domainerror.NotFoundError{Message: notFoundMessage}
+			return entity.Account{}, &domainerror.NotFoundError{}
 		}
 
 		return entity.Account{}, err
@@ -76,13 +85,16 @@ func (r *Repository) FindByID(ctx context.Context, id uint64) (entity.Account, e
 	return row.ToEntity(), nil
 }
 
-// Create inserts a new account and returns it. A negative opening balance is reported as a
-// *domainerror.ConflictError (accounts.balance can never go negative).
-func (r *Repository) Create(ctx context.Context, req port.AccountCreateRequest) (entity.Account, error) {
+// Create inserts a new account and returns it. A negative opening balance (accounts.balance can
+// never go negative) is reported as a message-less *domainerror.ConflictError — the use case
+// supplies the message.
+func (r *Repository) Create(
+	ctx context.Context, req port.AccountCreateRequest,
+) (entity.Account, error) {
 	id, err := r.storage.CreateAccount(ctx, req)
 	if err != nil {
 		if errors.Is(err, storageError.InsufficientBalanceError) {
-			return entity.Account{}, &domainerror.ConflictError{Message: insufficientBalanceMessage}
+			return entity.Account{}, &domainerror.ConflictError{}
 		}
 
 		return entity.Account{}, err
@@ -98,34 +110,38 @@ func (r *Repository) Create(ctx context.Context, req port.AccountCreateRequest) 
 	}, nil
 }
 
-// Update changes an existing account's name/type/currency/archived flag.
-func (r *Repository) Update(ctx context.Context, req port.AccountUpdateRequest) (entity.Account, error) {
+// Update changes an existing account's name/type/currency/archived flag. An unknown id is reported
+// as a message-less *domainerror.NotFoundError — the use case supplies the message.
+func (r *Repository) Update(
+	ctx context.Context, req port.AccountUpdateRequest,
+) (entity.Account, error) {
 	row, found, err := r.storage.UpdateAccount(ctx, req)
 	if err != nil {
 		return entity.Account{}, err
 	}
 
 	if !found {
-		return entity.Account{}, &domainerror.NotFoundError{Message: notFoundMessage}
+		return entity.Account{}, &domainerror.NotFoundError{}
 	}
 
 	return row.ToEntity(), nil
 }
 
 // Delete removes an account, reporting a *domainerror.NotFoundError if it doesn't exist, or a
-// *domainerror.ConflictError if it's still referenced by a transaction.
+// *domainerror.ConflictError if it's still referenced by a transaction. Both are message-less — the
+// use case supplies the message.
 func (r *Repository) Delete(ctx context.Context, id uint64) error {
 	found, err := r.storage.DeleteAccount(ctx, id)
 	if err != nil {
 		if errors.Is(err, storageError.ForeignKeyViolationError) {
-			return &domainerror.ConflictError{Message: inUseMessage}
+			return &domainerror.ConflictError{}
 		}
 
 		return err
 	}
 
 	if !found {
-		return &domainerror.NotFoundError{Message: notFoundMessage}
+		return &domainerror.NotFoundError{}
 	}
 
 	return nil

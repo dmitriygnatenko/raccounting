@@ -48,7 +48,7 @@ func (uc *UseCase) Execute(
 	})
 	if err != nil {
 		if domainError.IsConflictError(err) {
-			return Output{}, err
+			return Output{}, &domainError.ConflictError{Message: "This currency code already exists"}
 		}
 
 		slog.ErrorContext(ctx, "create currency: save", "error", err)

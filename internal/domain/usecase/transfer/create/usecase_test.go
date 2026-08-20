@@ -38,16 +38,43 @@ func (f *fakeAccountRepository) Delete(context.Context, uint64) error {
 	panic("not stubbed")
 }
 
-// fakeTransferRepository is a hand-rolled test double for port.TransferRepository.
-type fakeTransferRepository struct {
+// fakeTransactionRepository is a hand-rolled test double for port.TransactionRepository — only
+// CreateTransfer is exercised here.
+type fakeTransactionRepository struct {
 	createFn func(ctx context.Context, req port.TransferCreateRequest) (port.TransferResult, error)
 }
 
-func (f *fakeTransferRepository) Create(ctx context.Context, req port.TransferCreateRequest) (port.TransferResult, error) {
+func (f *fakeTransactionRepository) List(context.Context) ([]entity.Transaction, error) {
+	panic("not stubbed")
+}
+
+func (f *fakeTransactionRepository) FindByID(context.Context, uint64) (entity.Transaction, error) {
+	panic("not stubbed")
+}
+
+func (f *fakeTransactionRepository) Create(
+	context.Context, port.TransactionCreateRequest,
+) (entity.Transaction, error) {
+	panic("not stubbed")
+}
+
+func (f *fakeTransactionRepository) Update(
+	context.Context, port.TransactionUpdateRequest,
+) (entity.Transaction, error) {
+	panic("not stubbed")
+}
+
+func (f *fakeTransactionRepository) Delete(context.Context, uint64) error {
+	panic("not stubbed")
+}
+
+func (f *fakeTransactionRepository) CreateTransfer(
+	ctx context.Context, req port.TransferCreateRequest,
+) (port.TransferResult, error) {
 	return f.createFn(ctx, req)
 }
 
-func (f *fakeTransferRepository) Delete(context.Context, uint64) (bool, error) {
+func (f *fakeTransactionRepository) DeleteTransfer(context.Context, uint64) (bool, error) {
 	panic("not stubbed")
 }
 
@@ -58,13 +85,13 @@ func TestUseCase_Execute(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		mock         func(transfers *fakeTransferRepository, accounts *fakeAccountRepository) Input
+		mock         func(transfers *fakeTransactionRepository, accounts *fakeAccountRepository) Input
 		assertResult func(t *testing.T, got Output)
 		assertErr    func(t *testing.T, err error)
 	}{
 		{
 			name: "zero amount fails validation before any lookup",
-			mock: func(*fakeTransferRepository, *fakeAccountRepository) Input {
+			mock: func(*fakeTransactionRepository, *fakeAccountRepository) Input {
 				return Input{FromAccountID: 1, ToAccountID: 2, Amount: 0, Date: "2024-01-15"}
 			},
 			assertResult: func(t *testing.T, got Output) { require.Equal(t, Output{}, got) },
@@ -74,7 +101,7 @@ func TestUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "same source and destination account is rejected",
-			mock: func(*fakeTransferRepository, *fakeAccountRepository) Input {
+			mock: func(*fakeTransactionRepository, *fakeAccountRepository) Input {
 				return Input{FromAccountID: 1, ToAccountID: 1, Amount: 100, Date: "2024-01-15"}
 			},
 			assertResult: func(t *testing.T, got Output) { require.Equal(t, Output{}, got) },
@@ -84,7 +111,7 @@ func TestUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "unknown source account is rejected",
-			mock: func(_ *fakeTransferRepository, accounts *fakeAccountRepository) Input {
+			mock: func(_ *fakeTransactionRepository, accounts *fakeAccountRepository) Input {
 				accounts.findByIDFn = func(_ context.Context, id uint64) (entity.Account, error) {
 					require.Equal(t, uint64(1), id)
 					return entity.Account{}, &domainerror.NotFoundError{Message: "Account not found"}
@@ -99,7 +126,7 @@ func TestUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "unknown destination account is rejected",
-			mock: func(_ *fakeTransferRepository, accounts *fakeAccountRepository) Input {
+			mock: func(_ *fakeTransactionRepository, accounts *fakeAccountRepository) Input {
 				accounts.findByIDFn = func(_ context.Context, id uint64) (entity.Account, error) {
 					if id == 1 {
 						return entity.Account{ID: 1, Name: "Cash", CurrencyCode: "RUB"}, nil
@@ -117,7 +144,7 @@ func TestUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "creates a same-currency transfer, defaulting ToAmount and Rate",
-			mock: func(transfers *fakeTransferRepository, accounts *fakeAccountRepository) Input {
+			mock: func(transfers *fakeTransactionRepository, accounts *fakeAccountRepository) Input {
 				accounts.findByIDFn = func(_ context.Context, id uint64) (entity.Account, error) {
 					if id == 1 {
 						return entity.Account{ID: 1, Name: "Card", CurrencyCode: "RUB"}, nil
@@ -152,7 +179,7 @@ func TestUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "creates a cross-currency transfer honoring ToAmount and Rate",
-			mock: func(transfers *fakeTransferRepository, accounts *fakeAccountRepository) Input {
+			mock: func(transfers *fakeTransactionRepository, accounts *fakeAccountRepository) Input {
 				accounts.findByIDFn = func(_ context.Context, id uint64) (entity.Account, error) {
 					if id == 1 {
 						return entity.Account{ID: 1, Name: "RUB card", CurrencyCode: "RUB"}, nil
@@ -182,7 +209,7 @@ func TestUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "save failure is reported",
-			mock: func(transfers *fakeTransferRepository, accounts *fakeAccountRepository) Input {
+			mock: func(transfers *fakeTransactionRepository, accounts *fakeAccountRepository) Input {
 				accounts.findByIDFn = func(context.Context, uint64) (entity.Account, error) {
 					return entity.Account{ID: 1, Name: "Cash", CurrencyCode: "RUB"}, nil
 				}
@@ -203,7 +230,7 @@ func TestUseCase_Execute(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			transfers := &fakeTransferRepository{}
+			transfers := &fakeTransactionRepository{}
 			accounts := &fakeAccountRepository{}
 
 			uc := New(transfers, accounts)

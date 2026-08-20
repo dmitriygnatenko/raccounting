@@ -1,3 +1,8 @@
+// Package model holds the row-shaped structs each driver adapter (internal/adapter/mysql, postgres,
+// sqlite) scans a table's columns into, plus each one's ToEntity method converting it to its
+// internal/domain/entity counterpart. Enum-like columns (Type, Status, ...) are kept as their raw
+// uint8 here and only decoded into the entity's named type on that conversion, so this package
+// stays free of domain behavior.
 package model
 
 import (

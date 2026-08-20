@@ -12,14 +12,28 @@ import (
 	"raccounting/internal/storage/model"
 )
 
+//go:generate go tool mockgen -source=repository.go -destination=mocks/storage_mock.go -package=mocks
+
 // Storage is the slice of the mysql adapter this repository uses — the sessions table and nothing
 // else.
 type Storage interface {
-	CreateSession(ctx context.Context, session model.Session) error
+	CreateSession(
+		ctx context.Context,
+		session model.Session,
+	) error
 	// FindSessionByToken returns sql.ErrNoRows when no session has this token.
-	FindSessionByToken(ctx context.Context, token string) (model.Session, error)
-	DeleteSession(ctx context.Context, token string) error
-	DeleteExpiredSessions(ctx context.Context, now time.Time) (int64, error)
+	FindSessionByToken(
+		ctx context.Context,
+		token string,
+	) (model.Session, error)
+	DeleteSession(
+		ctx context.Context,
+		token string,
+	) error
+	DeleteExpiredSessions(
+		ctx context.Context,
+		now time.Time,
+	) (int64, error)
 }
 
 // Repository implements port.SessionRepository.
@@ -41,13 +55,13 @@ func (r *Repository) Create(ctx context.Context, session entity.Session) error {
 	})
 }
 
-// FindByToken looks up a session by its token. An unknown token is reported as a
-// *domainerror.NotFoundError.
+// FindByToken looks up a session by its token. An unknown token is reported as a message-less
+// *domainerror.NotFoundError — callers don't expose this text, so no use case needs to supply one.
 func (r *Repository) FindByToken(ctx context.Context, token string) (entity.Session, error) {
 	m, err := r.storage.FindSessionByToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return entity.Session{}, &domainerror.NotFoundError{Message: "Session not found"}
+			return entity.Session{}, &domainerror.NotFoundError{}
 		}
 
 		return entity.Session{}, err

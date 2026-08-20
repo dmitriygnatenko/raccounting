@@ -65,7 +65,7 @@ func (uc *UseCase) Execute(
 	})
 	if err != nil {
 		if domainError.IsConflictError(err) {
-			return Output{}, err
+			return Output{}, &domainError.ConflictError{Message: "Opening balance can't be negative"}
 		}
 
 		slog.ErrorContext(ctx, "create account: save", "error", err)
