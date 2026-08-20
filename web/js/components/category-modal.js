@@ -23,11 +23,11 @@ App.CategoryModal = {
             <form class="p-5 space-y-4" @submit.prevent="submit">
               <div class="flex rounded-lg bg-ink-100 p-1">
                 <button type="button" class="flex-1 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
-                  :class="form.type === 'expense' ? 'bg-white shadow-sm text-money-neg' : 'text-ink-500'"
-                  @click="form.type = 'expense'">{{ App.t('Расход') }}</button>
+                  :class="form.type === App.CategoryType.EXPENSE ? 'bg-white shadow-sm text-money-neg' : 'text-ink-500'"
+                  @click="form.type = App.CategoryType.EXPENSE">{{ App.t('Расход') }}</button>
                 <button type="button" class="flex-1 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer"
-                  :class="form.type === 'income' ? 'bg-white shadow-sm text-money-pos' : 'text-ink-500'"
-                  @click="form.type = 'income'">{{ App.t('Доход') }}</button>
+                  :class="form.type === App.CategoryType.INCOME ? 'bg-white shadow-sm text-money-pos' : 'text-ink-500'"
+                  @click="form.type = App.CategoryType.INCOME">{{ App.t('Доход') }}</button>
               </div>
 
               <div>
@@ -76,7 +76,7 @@ App.CategoryModal = {
       ui: App.uiStore.state,
       saving: false,
       palette: PALETTE,
-      form: { name: '', type: 'expense', color: PALETTE[0] },
+      form: { name: '', type: App.CategoryType.EXPENSE, color: PALETTE[0] },
     }
   },
   computed: {
@@ -93,7 +93,7 @@ App.CategoryModal = {
       const editing = this.ui.editingCategory
       this.form = editing
         ? { name: editing.name, type: editing.type, color: editing.color }
-        : { name: '', type: this.ui.newCategoryType || 'expense', color: PALETTE[0] }
+        : { name: '', type: this.ui.newCategoryType || App.CategoryType.EXPENSE, color: PALETTE[0] }
     },
   },
   methods: {

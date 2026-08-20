@@ -53,7 +53,7 @@ App.BudgetView = {
   },
   computed: {
     budgetCategories() {
-      return this.finance.state.categories.filter((c) => c.type === 'expense' && !c.archived)
+      return this.finance.state.categories.filter((c) => c.type === App.CategoryType.EXPENSE && !c.archived)
     },
     monthLabel() {
       return App.formatMonthYear(this.budgetMonth)

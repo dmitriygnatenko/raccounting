@@ -18,13 +18,17 @@ func NormalizeUsername(username string) string {
 	return strings.ToLower(strings.TrimSpace(username))
 }
 
-// UsernameRules is the ozzo-validation rule set for a username field: required, and at least
-// entity.MinUsernameLength characters.
+// UsernameRules is the ozzo-validation rule set for a username field: required, and between
+// entity.MinUsernameLength and entity.MaxUsernameLength characters (the latter matches the
+// users.username column width — see entity.MaxUsernameLength).
 func UsernameRules() []validation.Rule {
 	return []validation.Rule{
 		validation.Required.Error("Please enter a username"),
-		validation.Length(entity.MinUsernameLength, 0).
-			Error(fmt.Sprintf("Username must be at least %d characters", entity.MinUsernameLength)),
+		validation.Length(entity.MinUsernameLength, entity.MaxUsernameLength).
+			Error(fmt.Sprintf(
+				"Username must be between %d and %d characters",
+				entity.MinUsernameLength, entity.MaxUsernameLength,
+			)),
 	}
 }
 
@@ -90,13 +94,22 @@ func CategoryNameRules() []validation.Rule {
 	}
 }
 
-// CategoryTypeRules is the ozzo-validation rule set for a category type field: expense or income.
+// CategoryTypeRules is the ozzo-validation rule set for a numeric category type field: required
+// (the zero value means "not set" — every real entity.CategoryType starts at 1), and one of the
+// known category types (see entity.CategoryTypes).
 func CategoryTypeRules() []validation.Rule {
 	const msg = "Category type must be \"expense\" or \"income\""
 
+	types := entity.CategoryTypes()
+	values := make([]any, len(types))
+
+	for i, t := range types {
+		values[i] = uint8(t)
+	}
+
 	return []validation.Rule{
 		validation.Required.Error(msg),
-		validation.In(entity.CategoryTypeExpense.String(), entity.CategoryTypeIncome.String()).Error(msg),
+		validation.In(values...).Error(msg),
 	}
 }
 

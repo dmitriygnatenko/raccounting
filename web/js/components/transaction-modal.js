@@ -122,7 +122,7 @@ App.TransactionModal = {
       return !!this.ui.editingTransaction
     },
     categoryOptions() {
-      const type = this.form.direction === 'expense' ? 'expense' : 'income'
+      const type = this.form.direction === 'expense' ? App.CategoryType.EXPENSE : App.CategoryType.INCOME
       return this.finance.state.categories.filter((c) => c.type === type && (!c.archived || c.id === this.form.categoryId))
     },
     transferTargetOptions() {

@@ -20,26 +20,14 @@ const (
 	CategoryTypeExpense
 )
 
-var categoryTypeNames = map[CategoryType]string{
-	CategoryTypeIncome:  "income",
-	CategoryTypeExpense: "expense",
-}
-
-// String returns the wire-format name for t, or "" if t is not a known category type.
-func (t CategoryType) String() string {
-	return categoryTypeNames[t]
-}
-
-// ParseCategoryType parses a wire-format category type string ("income"/"expense"). ok is false
-// for an unrecognized value.
-func ParseCategoryType(s string) (CategoryType, bool) {
-	for t, name := range categoryTypeNames {
-		if name == s {
-			return t, true
-		}
+// CategoryTypes returns every known category type, in a stable order — used to build the "must be
+// one of these" validation rule. The wire format is the bare numeric value (see categoryJSON); the
+// frontend (web/js/data/categories.js) keeps its own App.CategoryType constants matching these.
+func CategoryTypes() []CategoryType {
+	return []CategoryType{
+		CategoryTypeIncome,
+		CategoryTypeExpense,
 	}
-
-	return 0, false
 }
 
 type CategoryStatus uint8
@@ -60,13 +48,14 @@ type Category struct {
 	UpdatedAt time.Time
 }
 
-// categoryJSON is Category's wire shape: Type as its string name, Status collapsed to a boolean
-// (the frontend only ever asks "is this archived?").
+// categoryJSON is Category's wire shape: Type as its bare numeric value (the frontend keeps its own
+// App.CategoryType constants, see CategoryTypes), Status collapsed to a boolean (the frontend only
+// ever asks "is this archived?").
 type categoryJSON struct {
 	ID        uint64    `json:"id"`
 	Name      string    `json:"name"`
 	Color     string    `json:"color"`
-	Type      string    `json:"type"`
+	Type      uint8     `json:"type"`
 	Archived  bool      `json:"archived"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -77,7 +66,7 @@ func (c Category) MarshalJSON() ([]byte, error) {
 		ID:        c.ID,
 		Name:      c.Name,
 		Color:     c.Color,
-		Type:      c.Type.String(),
+		Type:      uint8(c.Type),
 		Archived:  c.Status == CategoryStatusArchived,
 		CreatedAt: c.CreatedAt,
 		UpdatedAt: c.UpdatedAt,

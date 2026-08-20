@@ -2,9 +2,6 @@ package entity
 
 import "time"
 
-// SessionTokenLength is the fixed length of a Session.Token.
-const SessionTokenLength = 64
-
 // Session is a signed-in user's server-side session record.
 type Session struct {
 	Token     string    `json:"token"`
