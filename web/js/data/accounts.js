@@ -1,21 +1,24 @@
 window.App = window.App || {};
 
+// Account type is a bare number on the wire (matches Go's entity.AccountType), not a string — these
+// maps translate it to an icon name / label for display. Keys must stay in sync with the backend's
+// entity.AccountType constants (1 = cash, 2 = card, ...).
 App.accountIcon = {
-  cash: 'cash',
-  card: 'card',
-  checking: 'bank',
-  savings: 'savings',
-  credit_card: 'card',
-  debt: 'debt',
-  virtual: 'virtual',
+  1: 'cash',
+  2: 'card',
+  3: 'bank',
+  4: 'savings',
+  5: 'card',
+  6: 'debt',
+  7: 'virtual',
 }
 
 App.accountTypeLabel = {
-  cash: 'Наличные',
-  card: 'Банковская карта',
-  checking: 'Текущий счёт',
-  savings: 'Сберегательный счёт',
-  credit_card: 'Кредитная карта',
-  debt: 'Долговой счёт',
-  virtual: 'Виртуальный счёт',
+  1: 'Наличные',
+  2: 'Банковская карта',
+  3: 'Текущий счёт',
+  4: 'Сберегательный счёт',
+  5: 'Кредитная карта',
+  6: 'Долговой счёт',
+  7: 'Виртуальный счёт',
 }

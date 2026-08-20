@@ -49,15 +49,15 @@ func AccountNameRules() []validation.Rule {
 	}
 }
 
-// AccountTypeRules is the ozzo-validation rule set for an account type field: required, and one of
-// the known account types (see entity.AccountTypeNames) — the catalog lives in Go code now, not as
-// free text.
+// AccountTypeRules is the ozzo-validation rule set for a numeric account type field: required (the
+// zero value means "not set" — every real entity.AccountType starts at 1), and one of the known
+// account types (see entity.AccountTypes).
 func AccountTypeRules() []validation.Rule {
-	names := entity.AccountTypeNames()
-	values := make([]any, len(names))
+	types := entity.AccountTypes()
+	values := make([]any, len(types))
 
-	for i, name := range names {
-		values[i] = name
+	for i, t := range types {
+		values[i] = uint8(t)
 	}
 
 	return []validation.Rule{

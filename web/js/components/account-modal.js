@@ -79,7 +79,7 @@ App.AccountModal = {
       finance: App.financeStore,
       ui: App.uiStore.state,
       saving: false,
-      typeOptions: Object.keys(App.accountTypeLabel).map((value) => ({ value, label: App.accountTypeLabel[value] })),
+      typeOptions: Object.keys(App.accountTypeLabel).map((value) => ({ value: Number(value), label: App.accountTypeLabel[value] })),
       form: this.emptyForm(),
     }
   },
@@ -115,7 +115,7 @@ App.AccountModal = {
   },
   methods: {
     emptyForm() {
-      return { name: '', type: 'card', currency: 'RUB', balance: '' }
+      return { name: '', type: 2, currency: 'RUB', balance: '' } // 2 = card, see App.accountTypeLabel
     },
     close() {
       App.uiStore.closeAccountModal()

@@ -55,11 +55,9 @@ func (uc *UseCase) Execute(
 		return Output{}, &domainError.ValidationError{Message: "Currency not found"}
 	}
 
-	accountType, _ := entity.ParseAccountType(input.Type)
-
 	account, err := uc.accountRepository.Create(ctx, port.AccountCreateRequest{
 		Name:         name,
-		Type:         accountType,
+		Type:         entity.AccountType(input.Type),
 		CurrencyCode: input.CurrencyCode,
 		Balance:      input.Balance,
 	})

@@ -8,10 +8,11 @@ import (
 	"raccounting/internal/domain/usecase"
 )
 
-// Input is what CreateAccount needs to create a new account.
+// Input is what CreateAccount needs to create a new account. Type is the bare numeric
+// entity.AccountType value — see entity.AccountTypes.
 type Input struct {
 	Name         string
-	Type         string
+	Type         uint8
 	CurrencyCode string
 	Balance      int64
 }
