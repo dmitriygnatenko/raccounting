@@ -15,6 +15,7 @@ import (
 	categoryRepo "raccounting/internal/repository/category"
 	currencyRepo "raccounting/internal/repository/currency"
 	sessionRepo "raccounting/internal/repository/session"
+	tagRepo "raccounting/internal/repository/tag"
 	transactionRepo "raccounting/internal/repository/transaction"
 	userRepo "raccounting/internal/repository/user"
 )
@@ -31,6 +32,7 @@ type storage interface {
 	currencyRepo.Storage
 	transactionRepo.Storage
 	categoryBudgetRepo.Storage
+	tagRepo.Storage
 
 	Close() error
 }

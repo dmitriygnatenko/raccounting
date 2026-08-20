@@ -113,5 +113,17 @@ App.api = {
   async deleteCategory(id) {
     return request('DELETE', `/api/categories/${id}`)
   },
+  getTags() {
+    return request('GET', '/api/tags')
+  },
+  async createTag(tag) {
+    return request('POST', '/api/tags', tag)
+  },
+  async updateTag(tag) {
+    return request('PUT', `/api/tags/${tag.id}`, tag)
+  },
+  async deleteTag(id) {
+    return request('DELETE', `/api/tags/${id}`)
+  },
 }
 })();

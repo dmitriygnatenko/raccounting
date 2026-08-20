@@ -9,6 +9,7 @@ function createFinanceStore() {
     categories: [],
     transactions: [],
     currencies: [],
+    tags: [],
     baseCurrency: 'RUB',
     categoryBudgets: {},
     loading: true,
@@ -18,12 +19,13 @@ function createFinanceStore() {
   async function load() {
     if (state.loaded) return
     state.loading = true
-    const [a, c, t, cur, budgets] = await Promise.all([
+    const [a, c, t, cur, budgets, tags] = await Promise.all([
       App.api.getAccounts(),
       App.api.getCategories(),
       App.api.getTransactions(),
       App.api.getCurrencies(),
       App.api.getCategoryBudgets(),
+      App.api.getTags(),
     ])
     state.accounts = a
     state.categories = c
@@ -31,6 +33,7 @@ function createFinanceStore() {
     state.currencies = cur
     state.baseCurrency = cur.find((c) => c.is_default)?.code ?? cur[0]?.code ?? 'RUB'
     state.categoryBudgets = budgets
+    state.tags = tags
     state.loading = false
     state.loaded = true
   }
@@ -50,6 +53,7 @@ function createFinanceStore() {
   const categoryById = computed(() => new Map(state.categories.map((c) => [c.id, c])))
   const accountById = computed(() => new Map(state.accounts.map((a) => [a.id, a])))
   const currencyByCode = computed(() => new Map(state.currencies.map((c) => [c.code, c])))
+  const tagById = computed(() => new Map(state.tags.map((t) => [t.id, t])))
 
   function currencyRate(code) {
     return currencyByCode.value.get(code)?.rate ?? 1
@@ -227,6 +231,26 @@ function createFinanceStore() {
     state.categories = state.categories.filter((c) => c.id !== id)
   }
 
+  async function addTag(tag) {
+    const created = await App.api.createTag(tag)
+    state.tags.push(created)
+    return created
+  }
+
+  async function updateTag(tag) {
+    await App.api.updateTag(tag)
+    const idx = state.tags.findIndex((t) => t.id === tag.id)
+    if (idx !== -1) state.tags[idx] = tag
+  }
+
+  async function deleteTag(id) {
+    await App.api.deleteTag(id)
+    state.tags = state.tags.filter((t) => t.id !== id)
+    state.transactions.forEach((t) => {
+      if (t.tagIds?.includes(id)) t.tagIds = t.tagIds.filter((tagId) => tagId !== id)
+    })
+  }
+
   return {
     state,
     activeAccounts,
@@ -234,6 +258,7 @@ function createFinanceStore() {
     categoryById,
     accountById,
     currencyByCode,
+    tagById,
     toBase,
     amountInBase,
     load,
@@ -263,6 +288,9 @@ function createFinanceStore() {
     deleteCategory,
     budgetFor,
     setCategoryBudget,
+    addTag,
+    updateTag,
+    deleteTag,
   }
 }
 
@@ -277,6 +305,8 @@ function createUiStore() {
     categoryModalOpen: false,
     editingCategory: null,
     newCategoryType: App.CategoryType.EXPENSE,
+    tagModalOpen: false,
+    editingTag: null,
     mobileMenuOpen: false,
   })
 
@@ -329,6 +359,18 @@ function createUiStore() {
     state.categoryModalOpen = false
     state.editingCategory = null
   }
+  function openNewTag() {
+    state.editingTag = null
+    state.tagModalOpen = true
+  }
+  function openEditTag(tag) {
+    state.editingTag = tag
+    state.tagModalOpen = true
+  }
+  function closeTagModal() {
+    state.tagModalOpen = false
+    state.editingTag = null
+  }
 
   return {
     state,
@@ -344,6 +386,9 @@ function createUiStore() {
     openNewCategory,
     openEditCategory,
     closeCategoryModal,
+    openNewTag,
+    openEditTag,
+    closeTagModal,
   }
 }
 

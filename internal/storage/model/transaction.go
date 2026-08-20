@@ -26,6 +26,7 @@ type Transaction struct {
 	OperationAt           time.Time
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
+	TagIDs                []uint64
 }
 
 // ToEntity converts the stored row into a domain entity.Transaction.
@@ -46,5 +47,6 @@ func (m Transaction) ToEntity() entity.Transaction {
 		OperationAt:           m.OperationAt,
 		CreatedAt:             m.CreatedAt,
 		UpdatedAt:             m.UpdatedAt,
+		TagIDs:                m.TagIDs,
 	}
 }

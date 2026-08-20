@@ -20,6 +20,7 @@ type Input struct {
 	Memo       string
 	Amount     int64
 	Date       string
+	TagIDs     []uint64
 }
 
 // Validate rejects structurally invalid input before any repository lookup.

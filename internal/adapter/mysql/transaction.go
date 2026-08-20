@@ -94,14 +94,102 @@ func (s *Storage) ListTransactions(ctx context.Context) ([]model.Transaction, er
 		transactions = append(transactions, m)
 	}
 
-	return transactions, rows.Err()
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	tagsByTransaction, err := s.listTransactionTags(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range transactions {
+		transactions[i].TagIDs = tagsByTransaction[transactions[i].ID]
+	}
+
+	return transactions, nil
 }
 
 // FindTransactionByID returns a transaction by id. sql.ErrNoRows if it doesn't exist.
 func (s *Storage) FindTransactionByID(ctx context.Context, id uint64) (model.Transaction, error) {
 	row := s.DB.QueryRowContext(ctx, `SELECT `+transactionColumns+` FROM transactions WHERE id = ?`, id)
 
-	return scanTransaction(row)
+	m, err := scanTransaction(row)
+	if err != nil {
+		return model.Transaction{}, err
+	}
+
+	m.TagIDs, err = s.findTransactionTagIDs(ctx, id)
+
+	return m, err
+}
+
+// listTransactionTags returns every transaction's tag ids in one query, keyed by transaction id —
+// used by ListTransactions to avoid an N+1 query per row.
+func (s *Storage) listTransactionTags(ctx context.Context) (map[uint64][]uint64, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT transaction_id, tag_id FROM transaction_tags`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	byTransaction := make(map[uint64][]uint64)
+
+	for rows.Next() {
+		var transactionID, tagID uint64
+
+		if err = rows.Scan(&transactionID, &tagID); err != nil {
+			return nil, err
+		}
+
+		byTransaction[transactionID] = append(byTransaction[transactionID], tagID)
+	}
+
+	return byTransaction, rows.Err()
+}
+
+// findTransactionTagIDs returns the tag ids attached to a single transaction.
+func (s *Storage) findTransactionTagIDs(ctx context.Context, transactionID uint64) ([]uint64, error) {
+	rows, err := s.DB.QueryContext(ctx,
+		`SELECT tag_id FROM transaction_tags WHERE transaction_id = ?`, transactionID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tagIDs []uint64
+
+	for rows.Next() {
+		var tagID uint64
+
+		if err = rows.Scan(&tagID); err != nil {
+			return nil, err
+		}
+
+		tagIDs = append(tagIDs, tagID)
+	}
+
+	return tagIDs, rows.Err()
+}
+
+// setTransactionTags replaces a transaction's tag associations with tagIDs, inside tx.
+func setTransactionTags(ctx context.Context, tx *sql.Tx, transactionID uint64, tagIDs []uint64) error {
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM transaction_tags WHERE transaction_id = ?`, transactionID,
+	); err != nil {
+		return err
+	}
+
+	for _, tagID := range tagIDs {
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO transaction_tags (transaction_id, tag_id) VALUES (?, ?)`, transactionID, tagID,
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // CreateTransactionWithBalance inserts a transaction row and adjusts its account's balance,
@@ -136,6 +224,10 @@ func (s *Storage) CreateTransactionWithBalance(
 		return model.Transaction{}, wrapInsufficientBalance(err)
 	}
 
+	if err = setTransactionTags(ctx, tx, uint64(id), req.TagIDs); err != nil {
+		return model.Transaction{}, err
+	}
+
 	if err = tx.Commit(); err != nil {
 		return model.Transaction{}, err
 	}
@@ -149,6 +241,7 @@ func (s *Storage) CreateTransactionWithBalance(
 		Amount:       req.Amount,
 		Memo:         req.Memo,
 		OperationAt:  req.OperationAt,
+		TagIDs:       req.TagIDs,
 	}, nil
 }
 
@@ -205,6 +298,10 @@ func (s *Storage) UpdateTransactionWithBalance(
 		return model.Transaction{}, false, wrapInsufficientBalance(err)
 	}
 
+	if err = setTransactionTags(ctx, tx, req.ID, req.TagIDs); err != nil {
+		return model.Transaction{}, false, err
+	}
+
 	if err = tx.Commit(); err != nil {
 		return model.Transaction{}, false, err
 	}
@@ -218,6 +315,7 @@ func (s *Storage) UpdateTransactionWithBalance(
 		Amount:       req.Amount,
 		Memo:         req.Memo,
 		OperationAt:  req.OperationAt,
+		TagIDs:       req.TagIDs,
 	}, true, nil
 }
 

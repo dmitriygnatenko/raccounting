@@ -40,6 +40,9 @@ type Transaction struct {
 	OperationAt           time.Time
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
+	// TagIDs is the set of tags attached to this transaction. Always nil/empty for a transfer leg
+	// (see transaction/create and transaction/update — tags aren't accepted for transfers).
+	TagIDs []uint64
 }
 
 // IsTransfer reports whether t is one leg of a transfer.
@@ -64,6 +67,7 @@ type transactionJSON struct {
 	TransferAccountID     *uint64   `json:"transferAccountId,omitempty"`
 	Memo                  string    `json:"memo"`
 	Date                  string    `json:"date"`
+	TagIDs                []uint64  `json:"tagIds"`
 	CreatedAt             time.Time `json:"created_at"`
 	UpdatedAt             time.Time `json:"updated_at"`
 }
@@ -81,8 +85,13 @@ func (t Transaction) MarshalJSON() ([]byte, error) {
 		TransferAccountID:     t.TransferAccountID,
 		Memo:                  t.Memo,
 		Date:                  t.OperationAt.Format(DateLayout),
+		TagIDs:                t.TagIDs,
 		CreatedAt:             t.CreatedAt,
 		UpdatedAt:             t.UpdatedAt,
+	}
+
+	if j.TagIDs == nil {
+		j.TagIDs = []uint64{}
 	}
 
 	if t.TransferAmount != nil {

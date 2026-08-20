@@ -11,6 +11,7 @@ import (
 
 	"raccounting/internal/domain/entity"
 	domainError "raccounting/internal/domain/error"
+	"raccounting/internal/domain/usecase"
 	"raccounting/internal/port"
 )
 
@@ -19,6 +20,7 @@ type UseCase struct {
 	transactionRepository port.TransactionRepository
 	accountRepository     port.AccountRepository
 	categoryRepository    port.CategoryRepository
+	tagRepository         port.TagRepository
 }
 
 // New builds a UseCase from its dependencies.
@@ -26,11 +28,13 @@ func New(
 	transactionRepository port.TransactionRepository,
 	accountRepository port.AccountRepository,
 	categoryRepository port.CategoryRepository,
+	tagRepository port.TagRepository,
 ) *UseCase {
 	return &UseCase{
 		transactionRepository: transactionRepository,
 		accountRepository:     accountRepository,
 		categoryRepository:    categoryRepository,
+		tagRepository:         tagRepository,
 	}
 }
 
@@ -75,6 +79,20 @@ func (uc *UseCase) Execute(
 		return Output{}, &domainError.ValidationError{Message: "Date must be in YYYY-MM-DD format"}
 	}
 
+	tagIDs := usecase.DedupeIDs(input.TagIDs)
+	if len(tagIDs) > 0 {
+		found, err := uc.tagRepository.FindByIDs(ctx, tagIDs)
+		if err != nil {
+			slog.ErrorContext(ctx, "create transaction: verify tags", "error", err)
+
+			return Output{}, errors.New("Failed to verify tags")
+		}
+
+		if len(found) != len(tagIDs) {
+			return Output{}, &domainError.ValidationError{Message: "Unknown tag"}
+		}
+	}
+
 	tx, err := uc.transactionRepository.Create(ctx, port.TransactionCreateRequest{
 		AccountID:    input.AccountID,
 		CategoryID:   input.CategoryID,
@@ -83,6 +101,7 @@ func (uc *UseCase) Execute(
 		Amount:       input.Amount,
 		Memo:         strings.TrimSpace(input.Memo),
 		OperationAt:  operationAt,
+		TagIDs:       tagIDs,
 	})
 	if err != nil {
 		if domainError.IsConflictError(err) {
