@@ -64,7 +64,7 @@ App.AppShell = {
           </div>
         </header>
 
-        <main class="flex-1 px-4 md:px-8 py-5 md:py-6 pb-24 md:pb-6 max-w-[1400px] w-full mx-auto">
+        <main class="flex-1 px-4 md:px-8 py-5 md:py-6 pb-40 md:pb-6 max-w-[1400px] w-full mx-auto">
           <component :is="currentView" />
         </main>
       </div>
