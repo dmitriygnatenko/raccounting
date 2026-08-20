@@ -59,7 +59,8 @@ func (cfg DBConfig) validate() error {
 
 	return validation.ValidateStruct(&cfg,
 		validation.Field(
-			&cfg.Driver, validation.Required.Error("DB_DRIVER must not be empty"),
+			&cfg.Driver,
+			validation.Required.Error("DB_DRIVER must not be empty"),
 			validation.In(DriverMySQL, DriverPostgres, DriverSQLite).
 				Error(fmt.Sprintf("invalid DB_DRIVER %q: must be %q, %q or %q",
 					cfg.Driver, DriverMySQL, DriverPostgres, DriverSQLite),
@@ -67,30 +68,55 @@ func (cfg DBConfig) validate() error {
 		),
 		validation.Field(
 			&cfg.Host,
-			validation.When(!isSQLite, validation.Required.Error("DB_HOST must not be empty for "+cfg.Driver)),
+			validation.When(
+				!isSQLite,
+				validation.Required.Error("DB_HOST must not be empty for "+cfg.Driver),
+			),
 		),
 		validation.Field(
 			&cfg.Port,
-			validation.When(!isSQLite, validation.Required.Error("DB_PORT must not be empty for "+cfg.Driver)),
+			validation.When(
+				!isSQLite,
+				validation.Required.Error("DB_PORT must not be empty for "+cfg.Driver),
+			),
 		),
 		validation.Field(
 			&cfg.User,
-			validation.When(!isSQLite, validation.Required.Error("DB_USER must not be empty for "+cfg.Driver)),
+			validation.When(
+				!isSQLite,
+				validation.Required.Error("DB_USER must not be empty for "+cfg.Driver),
+			),
 		),
 		validation.Field(
 			&cfg.Name,
-			validation.When(!isSQLite, validation.Required.Error("DB_NAME must not be empty for "+cfg.Driver)),
+			validation.When(
+				!isSQLite,
+				validation.Required.Error("DB_NAME must not be empty for "+cfg.Driver),
+			),
 		),
 		validation.Field(
 			&cfg.SQLitePath,
-			validation.When(isSQLite, validation.Required.Error("DB_SQLITE_PATH must not be empty for sqlite")),
+			validation.When(
+				isSQLite,
+				validation.Required.Error("DB_SQLITE_PATH must not be empty for sqlite"),
+			),
 		),
-		validation.Field(&cfg.MaxOpenConns, validation.Min(1).Error("DB_MAX_OPEN_CONNS must be at least 1")),
-		validation.Field(&cfg.MaxIdleConns, validation.Min(0).Error("DB_MAX_IDLE_CONNS must not be negative")),
-		validation.Field(&cfg.ConnMaxLifetime,
-			validation.Min(time.Duration(0)).Error("DB_CONN_MAX_LIFETIME must not be negative")),
-		validation.Field(&cfg.ConnTimeout,
-			validation.Min(time.Duration(0)).Error("DB_CONN_TIMEOUT must not be negative")),
+		validation.Field(
+			&cfg.MaxOpenConns,
+			validation.Min(1).Error("DB_MAX_OPEN_CONNS must be at least 1"),
+		),
+		validation.Field(
+			&cfg.MaxIdleConns,
+			validation.Min(0).Error("DB_MAX_IDLE_CONNS must not be negative"),
+		),
+		validation.Field(
+			&cfg.ConnMaxLifetime,
+			validation.Min(time.Duration(0)).Error("DB_CONN_MAX_LIFETIME must not be negative"),
+		),
+		validation.Field(
+			&cfg.ConnTimeout,
+			validation.Min(time.Duration(0)).Error("DB_CONN_TIMEOUT must not be negative"),
+		),
 	)
 }
 
