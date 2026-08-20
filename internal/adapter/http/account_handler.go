@@ -10,7 +10,7 @@ import (
 
 type accountRequest struct {
 	Name         string `json:"name"`
-	Type         string `json:"type"`
+	Type         uint8  `json:"type"`
 	CurrencyCode string `json:"currency"`
 	Balance      int64  `json:"balance"`
 	Archived     bool   `json:"archived"`

@@ -83,7 +83,7 @@ func TestUseCase_Execute(t *testing.T) {
 		{
 			name: "blank name fails validation before any lookup",
 			mock: func(*fakeAccountRepository, *fakeCurrencyRepository) Input {
-				return Input{Name: "", Type: "cash", CurrencyCode: "RUB"}
+				return Input{Name: "", Type: uint8(entity.AccountTypeCash), CurrencyCode: "RUB"}
 			},
 			assertResult: func(t *testing.T, got Output) { require.Equal(t, Output{}, got) },
 			assertErr: func(t *testing.T, err error) {
@@ -93,7 +93,7 @@ func TestUseCase_Execute(t *testing.T) {
 		{
 			name: "overlong name fails validation",
 			mock: func(*fakeAccountRepository, *fakeCurrencyRepository) Input {
-				return Input{Name: strings.Repeat("a", entity.MaxAccountNameLength+1), Type: "cash", CurrencyCode: "RUB"}
+				return Input{Name: strings.Repeat("a", entity.MaxAccountNameLength+1), Type: uint8(entity.AccountTypeCash), CurrencyCode: "RUB"}
 			},
 			assertResult: func(t *testing.T, got Output) { require.Equal(t, Output{}, got) },
 			assertErr: func(t *testing.T, err error) {
@@ -101,9 +101,9 @@ func TestUseCase_Execute(t *testing.T) {
 			},
 		},
 		{
-			name: "blank type fails validation",
+			name: "unset type fails validation",
 			mock: func(*fakeAccountRepository, *fakeCurrencyRepository) Input {
-				return Input{Name: "Cash", Type: "", CurrencyCode: "RUB"}
+				return Input{Name: "Cash", Type: 0, CurrencyCode: "RUB"}
 			},
 			assertResult: func(t *testing.T, got Output) { require.Equal(t, Output{}, got) },
 			assertErr: func(t *testing.T, err error) {
@@ -115,7 +115,7 @@ func TestUseCase_Execute(t *testing.T) {
 			mock: func(_ *fakeAccountRepository, currencies *fakeCurrencyRepository) Input {
 				currencies.existsFn = func(context.Context, string) (bool, error) { return false, nil }
 
-				return Input{Name: "Cash", Type: "cash", CurrencyCode: "XYZ"}
+				return Input{Name: "Cash", Type: uint8(entity.AccountTypeCash), CurrencyCode: "XYZ"}
 			},
 			assertResult: func(t *testing.T, got Output) { require.Equal(t, Output{}, got) },
 			assertErr: func(t *testing.T, err error) {
@@ -127,7 +127,7 @@ func TestUseCase_Execute(t *testing.T) {
 			mock: func(_ *fakeAccountRepository, currencies *fakeCurrencyRepository) Input {
 				currencies.existsFn = func(context.Context, string) (bool, error) { return false, errStub }
 
-				return Input{Name: "Cash", Type: "cash", CurrencyCode: "RUB"}
+				return Input{Name: "Cash", Type: uint8(entity.AccountTypeCash), CurrencyCode: "RUB"}
 			},
 			assertResult: func(t *testing.T, got Output) { require.Equal(t, Output{}, got) },
 			assertErr: func(t *testing.T, err error) {
@@ -142,7 +142,7 @@ func TestUseCase_Execute(t *testing.T) {
 					return entity.Account{}, errStub
 				}
 
-				return Input{Name: "Cash", Type: "cash", CurrencyCode: "RUB"}
+				return Input{Name: "Cash", Type: uint8(entity.AccountTypeCash), CurrencyCode: "RUB"}
 			},
 			assertResult: func(t *testing.T, got Output) { require.Equal(t, Output{}, got) },
 			assertErr: func(t *testing.T, err error) {
@@ -163,7 +163,7 @@ func TestUseCase_Execute(t *testing.T) {
 					return entity.Account{ID: 1, Name: req.Name, Type: req.Type, CurrencyCode: req.CurrencyCode, Balance: req.Balance}, nil
 				}
 
-				return Input{Name: "  Cash  ", Type: "cash", CurrencyCode: "RUB", Balance: 500}
+				return Input{Name: "  Cash  ", Type: uint8(entity.AccountTypeCash), CurrencyCode: "RUB", Balance: 500}
 			},
 			assertResult: func(t *testing.T, got Output) {
 				require.Equal(t, "Cash", got.Account.Name)
@@ -181,7 +181,7 @@ func TestUseCase_Execute(t *testing.T) {
 					return entity.Account{ID: 1, Name: req.Name, Type: req.Type, CurrencyCode: req.CurrencyCode, Balance: req.Balance}, nil
 				}
 
-				return Input{Name: "Cash", Type: "cash", CurrencyCode: "RUB", Balance: 0}
+				return Input{Name: "Cash", Type: uint8(entity.AccountTypeCash), CurrencyCode: "RUB", Balance: 0}
 			},
 			assertResult: func(t *testing.T, got Output) {
 				require.Equal(t, int64(0), got.Account.Balance)

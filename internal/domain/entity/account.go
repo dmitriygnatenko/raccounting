@@ -19,40 +19,11 @@ const (
 	AccountTypeVirtual
 )
 
-// accountTypeNames maps each AccountType to its wire representation (see AccountType.String).
-// AccountTypeAccount is deliberately serialized as "checking" — that's what the frontend
-// (web/js/data/accounts.js) calls a regular bank account; the Go constant name predates that.
-var accountTypeNames = map[AccountType]string{
-	AccountTypeCash:       "cash",
-	AccountTypeCard:       "card",
-	AccountTypeAccount:    "checking",
-	AccountTypeSavings:    "savings",
-	AccountTypeCreditCard: "credit_card",
-	AccountTypeDebt:       "debt",
-	AccountTypeVirtual:    "virtual",
-}
-
-// String returns the wire-format name for t, or "" if t is not a known account type.
-func (t AccountType) String() string {
-	return accountTypeNames[t]
-}
-
-// ParseAccountType parses a wire-format account type string. ok is false for an unrecognized value.
-func ParseAccountType(s string) (AccountType, bool) {
-	for t, name := range accountTypeNames {
-		if name == s {
-			return t, true
-		}
-	}
-
-	return 0, false
-}
-
-// AccountTypeNames returns every known account type's wire-format name, in a stable order —
-// used to build the "must be one of these" validation rule.
-func AccountTypeNames() []string {
-	names := make([]string, 0, len(accountTypeNames))
-	for _, t := range []AccountType{
+// AccountTypes returns every known account type, in a stable order — used to build the "must be
+// one of these" validation rule. The wire format is the bare numeric value (see accountJSON); the
+// frontend (web/js/data/accounts.js) keeps its own number -> icon/label maps in this same order.
+func AccountTypes() []AccountType {
+	return []AccountType{
 		AccountTypeCash,
 		AccountTypeCard,
 		AccountTypeAccount,
@@ -60,11 +31,7 @@ func AccountTypeNames() []string {
 		AccountTypeCreditCard,
 		AccountTypeDebt,
 		AccountTypeVirtual,
-	} {
-		names = append(names, t.String())
 	}
-
-	return names
 }
 
 type AccountStatus uint8
@@ -86,13 +53,14 @@ type Account struct {
 	UpdatedAt    time.Time
 }
 
-// accountJSON is Account's wire shape: Type as its string name, Status collapsed to a boolean
-// (the frontend only ever asks "is this archived?"), Balance converted from minor units to a
-// decimal major-unit amount.
+// accountJSON is Account's wire shape: Type as its bare numeric value (the frontend keeps its own
+// number -> icon/label maps, see AccountTypes), Status collapsed to a boolean (the frontend only
+// ever asks "is this archived?"), Balance converted from minor units to a decimal major-unit
+// amount.
 type accountJSON struct {
 	ID        uint64    `json:"id"`
 	Name      string    `json:"name"`
-	Type      string    `json:"type"`
+	Type      uint8     `json:"type"`
 	Currency  string    `json:"currency"`
 	Balance   int64     `json:"balance"`
 	Archived  bool      `json:"archived"`
@@ -104,7 +72,7 @@ func (a Account) MarshalJSON() ([]byte, error) {
 	return json.Marshal(accountJSON{
 		ID:        a.ID,
 		Name:      a.Name,
-		Type:      a.Type.String(),
+		Type:      uint8(a.Type),
 		Currency:  a.CurrencyCode,
 		Balance:   a.Balance,
 		Archived:  a.Status == AccountStatusArchived,

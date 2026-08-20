@@ -9,11 +9,12 @@ import (
 )
 
 // Input is what UpdateAccount needs to rename/recolor/archive an existing account. Balance is
-// deliberately absent — see entity.Account.
+// deliberately absent — see entity.Account. Type is the bare numeric entity.AccountType value —
+// see entity.AccountTypes.
 type Input struct {
 	ID           uint64
 	Name         string
-	Type         string
+	Type         uint8
 	CurrencyCode string
 	Archived     bool
 }
