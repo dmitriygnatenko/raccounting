@@ -17,7 +17,7 @@ func (s *Server) handleListCategoryBudgets(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	out, err := s.CategoryBudgets.List.Execute(r.Context())
+	out, err := s.Budgets.List.Execute(r.Context())
 	if err != nil {
 		writeUseCaseError(w, err)
 		return
@@ -63,7 +63,7 @@ func (s *Server) handleSetCategoryBudget(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err = s.CategoryBudgets.Set.Execute(
+	if err = s.Budgets.Set.Execute(
 		r.Context(),
 		set.Input{
 			CategoryID: categoryID,
