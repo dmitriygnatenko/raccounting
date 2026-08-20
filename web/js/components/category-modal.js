@@ -57,7 +57,7 @@ App.CategoryModal = {
                   class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-money-neg text-sm font-medium hover:bg-red-50 cursor-pointer disabled:opacity-50"
                   @click="remove">{{ App.t('Удалить') }}</button>
               </div>
-              <p v-if="isEditing && inUse" class="text-xs text-ink-400 text-center">{{ App.t('Используется в операциях или бюджете — удалить нельзя, можно деактивировать') }}</p>
+              <p v-if="isEditing && inUse" class="text-xs text-ink-400 text-center">{{ App.t('Используется в операциях — удалить нельзя, можно деактивировать') }}</p>
 
               <button type="submit" :disabled="saving"
                 class="w-full rounded-lg bg-brand-600 text-white text-sm font-medium py-2.5 hover:bg-brand-500 transition-colors cursor-pointer disabled:opacity-50">

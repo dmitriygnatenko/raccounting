@@ -231,7 +231,7 @@ App.ReportsView = {
         const key = t.categoryId ?? 'other-expense'
         spentByCategory.set(key, (spentByCategory.get(key) ?? 0) + Math.abs(this.finance.amountInBase(t)))
       }
-      const categoryIds = new Set([...Object.keys(this.finance.state.categoryBudgets), ...spentByCategory.keys()])
+      const categoryIds = new Set([...Object.keys(this.finance.state.categoryBudgets).map(Number), ...spentByCategory.keys()])
       return [...categoryIds]
         .map((categoryId) => {
           const budgeted = this.finance.budgetFor(categoryId, monthKey)
