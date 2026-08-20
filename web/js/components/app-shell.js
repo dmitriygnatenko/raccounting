@@ -7,6 +7,7 @@ App.AppShell = {
     'account-modal': App.AccountModal,
     'currency-modal': App.CurrencyModal,
     'category-modal': App.CategoryModal,
+    'tag-modal': App.TagModal,
   },
   template: `
     <div class="min-h-screen bg-ink-50 text-ink-900 md:flex">
@@ -111,6 +112,7 @@ App.AppShell = {
       <account-modal></account-modal>
       <currency-modal></currency-modal>
       <category-modal></category-modal>
+      <tag-modal></tag-modal>
     </div>
   `,
   data() {

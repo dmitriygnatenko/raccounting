@@ -11,6 +11,7 @@ App.SettingsView = {
     <div v-else class="space-y-5">
       <div class="flex rounded-lg bg-ink-100 p-1 w-fit text-sm font-medium overflow-x-auto max-w-full">
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'categories' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'categories'">{{ App.t('Категории') }}</button>
+        <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'tags' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'tags'">{{ App.t('Теги') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'accounts' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'accounts'">{{ App.t('Карты и счета') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'currencies' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'currencies'">{{ App.t('Валюты') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'language' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'language'">{{ App.t('Язык') }}</button>
@@ -156,6 +157,37 @@ App.SettingsView = {
             </span>
           </li>
           <li v-if="!filteredCategories.length" class="px-4 md:px-5 py-8 text-center text-sm text-ink-400">{{ App.t('Нет категорий') }}</li>
+        </ul>
+      </div>
+
+      <div v-if="tab === 'tags'" class="rounded-xl bg-white border border-ink-200 overflow-hidden">
+        <div class="flex items-center justify-between px-4 md:px-5 py-3.5 border-b border-ink-200">
+          <div>
+            <h2 class="text-sm font-semibold text-ink-900">{{ App.t('Теги') }}</h2>
+            <p class="text-xs text-ink-400 mt-0.5">{{ finance.state.tags.length }} {{ App.t('всего') }}</p>
+          </div>
+          <button class="flex items-center gap-1.5 rounded-lg bg-brand-600 text-white text-sm font-medium px-3.5 py-2 hover:bg-brand-500 transition-colors cursor-pointer"
+            @click="App.uiStore.openNewTag()">
+            <app-icon name="plus" :size="16" />
+            <span class="hidden sm:inline">{{ App.t('Добавить тег') }}</span>
+          </button>
+        </div>
+        <ul class="divide-y divide-ink-100">
+          <li v-for="tag in finance.state.tags" :key="tag.id" class="flex items-center justify-between gap-3 px-4 md:px-5 py-3.5">
+            <span class="flex items-center gap-3 min-w-0">
+              <span class="w-8 h-8 rounded-full shrink-0" :style="{ background: tag.color }"></span>
+              <span class="block text-sm font-medium text-ink-900 truncate">{{ App.t(tag.name) }}</span>
+            </span>
+            <span class="flex items-center gap-1 shrink-0">
+              <button class="p-2 rounded-lg text-ink-500 hover:bg-ink-100 cursor-pointer" :aria-label="App.t('Изменить')" :title="App.t('Изменить название или цвет')" @click="App.uiStore.openEditTag(tag)">
+                <app-icon name="edit" :size="16" />
+              </button>
+              <button class="p-2 rounded-lg text-money-neg hover:bg-red-50 cursor-pointer" :aria-label="App.t('Удалить')" :title="App.t('Удалить тег безвозвратно')" @click="App.financeStore.deleteTag(tag.id)">
+                <app-icon name="trash" :size="16" />
+              </button>
+            </span>
+          </li>
+          <li v-if="!finance.state.tags.length" class="px-4 md:px-5 py-8 text-center text-sm text-ink-400">{{ App.t('Нет тегов') }}</li>
         </ul>
       </div>
 

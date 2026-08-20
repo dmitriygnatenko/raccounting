@@ -21,6 +21,7 @@ type TransactionCreateRequest struct {
 	Amount       int64
 	Memo         string
 	OperationAt  time.Time
+	TagIDs       []uint64
 }
 
 // TransactionUpdateRequest bundles the TransactionRepository.Update parameters. Updating a
@@ -35,6 +36,7 @@ type TransactionUpdateRequest struct {
 	Amount       int64
 	Memo         string
 	OperationAt  time.Time
+	TagIDs       []uint64
 }
 
 // TransferCreateRequest bundles the TransactionRepository.CreateTransfer parameters.

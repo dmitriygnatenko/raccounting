@@ -22,6 +22,10 @@ App.TransactionsView = {
               <option value="">{{ App.t('Все категории') }}</option>
               <option v-for="c in finance.state.categories" :key="c.id" :value="c.id">{{ App.t(c.name) }}</option>
             </select>
+            <select v-model="filters.tagId" class="rounded-lg border border-ink-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500">
+              <option value="">{{ App.t('Все теги') }}</option>
+              <option v-for="t in finance.state.tags" :key="t.id" :value="t.id">{{ App.t(t.name) }}</option>
+            </select>
             <select v-model="filters.direction" class="rounded-lg border border-ink-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500">
               <option value="all">{{ App.t('Все типы') }}</option>
               <option value="expense">{{ App.t('Расходы') }}</option>
@@ -94,7 +98,12 @@ App.TransactionsView = {
                   <span v-else class="text-ink-300">—</span>
                 </span>
                 <span class="text-sm text-ink-500 truncate">{{ App.t(finance.accountById.get(t.accountId)?.name) }}</span>
-                <span class="text-sm text-ink-400 truncate">{{ t.memo || '—' }}</span>
+                <span class="min-w-0 flex items-center gap-1.5 flex-wrap">
+                  <span v-for="tag in tagsFor(t)" :key="tag.id"
+                    class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[11px] font-medium shrink-0"
+                    :style="{ background: tag.color + '1a', color: tag.color }">{{ App.t(tag.name) }}</span>
+                  <span v-if="t.memo" class="text-sm text-ink-400 truncate">{{ t.memo }}</span>
+                </span>
                 <span class="text-sm font-semibold text-right" :class="t.amount < 0 ? 'text-money-neg' : 'text-money-pos'">
                   {{ t.amount < 0 ? '−' : '+' }}{{ App.formatMoney(Math.abs(t.amount), finance.accountById.get(t.accountId)?.currency) }}
                 </span>
@@ -137,6 +146,7 @@ App.TransactionsView = {
         search: '',
         accountId: App.router.state.query.account ?? '',
         categoryId: '',
+        tagId: '',
         direction: 'all',
         period: 'month',
         dateFrom: '',
@@ -150,6 +160,7 @@ App.TransactionsView = {
       return this.finance.state.transactions
         .filter((t) => !this.filters.accountId || t.accountId === this.filters.accountId)
         .filter((t) => !this.filters.categoryId || t.categoryId === this.filters.categoryId)
+        .filter((t) => !this.filters.tagId || (t.tagIds || []).includes(this.filters.tagId))
         .filter((t) => {
           if (this.filters.direction === 'all') return true
           if (this.filters.direction === 'transfer') return t.type === App.TransactionType.TRANSFER
@@ -185,10 +196,13 @@ App.TransactionsView = {
       return this.filtered.reduce((s, t) => s + this.finance.amountInBase(t), 0)
     },
     hasActiveFilters() {
-      return !!this.filters.search || !!this.filters.accountId || !!this.filters.categoryId || this.filters.direction !== 'all' || this.filters.period !== 'month'
+      return !!this.filters.search || !!this.filters.accountId || !!this.filters.categoryId || !!this.filters.tagId || this.filters.direction !== 'all' || this.filters.period !== 'month'
     },
   },
   methods: {
+    tagsFor(t) {
+      return (t.tagIds || []).map((id) => this.finance.tagById.get(id)).filter(Boolean)
+    },
     inPeriod(dateStr) {
       if (this.filters.period === 'all') return true
       const d = new Date(dateStr)
@@ -210,6 +224,7 @@ App.TransactionsView = {
       this.filters.search = ''
       this.filters.accountId = ''
       this.filters.categoryId = ''
+      this.filters.tagId = ''
       this.filters.direction = 'all'
       this.filters.period = 'month'
       this.filters.dateFrom = ''

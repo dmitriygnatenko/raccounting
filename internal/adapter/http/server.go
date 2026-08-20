@@ -40,6 +40,11 @@ import (
 
 	settingsGet "raccounting/internal/domain/usecase/settings/get"
 	settingsUpdate "raccounting/internal/domain/usecase/settings/update"
+
+	tagCreate "raccounting/internal/domain/usecase/tag/create"
+	tagDelete "raccounting/internal/domain/usecase/tag/delete"
+	tagList "raccounting/internal/domain/usecase/tag/list"
+	tagUpdate "raccounting/internal/domain/usecase/tag/update"
 )
 
 // AuthUseCases collects the use cases behind the /api/auth routes.
@@ -100,6 +105,14 @@ type SettingsUseCases struct {
 	Update *settingsUpdate.UseCase
 }
 
+// TagUseCases collects the use cases behind the /api/tags routes.
+type TagUseCases struct {
+	Create *tagCreate.UseCase
+	Update *tagUpdate.UseCase
+	Delete *tagDelete.UseCase
+	List   *tagList.UseCase
+}
+
 // Server holds every use case the API surfaces, plus the handful of settings the HTTP layer itself
 // is responsible for (cookie flags).
 type Server struct {
@@ -111,6 +124,7 @@ type Server struct {
 	Transfers    TransferUseCases
 	Budgets      CategoryBudgetUseCases
 	Settings     SettingsUseCases
+	Tags         TagUseCases
 
 	// CookieSecure sets the session cookie's Secure flag — true once the app is served over HTTPS.
 	CookieSecure bool
@@ -154,6 +168,11 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 
 	mux.HandleFunc("GET /api/category-budgets", s.requireAuth(s.handleListCategoryBudgets))
 	mux.HandleFunc("PUT /api/category-budgets/{categoryId}/{monthKey}", s.requireAuth(s.handleSetCategoryBudget))
+
+	mux.HandleFunc("GET /api/tags", s.requireAuth(s.handleListTags))
+	mux.HandleFunc("POST /api/tags", s.requireAuth(s.handleCreateTag))
+	mux.HandleFunc("PUT /api/tags/{id}", s.requireAuth(s.handleUpdateTag))
+	mux.HandleFunc("DELETE /api/tags/{id}", s.requireAuth(s.handleDeleteTag))
 }
 
 // handleHealth handles GET /api/health — a trivial liveness check.

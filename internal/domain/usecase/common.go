@@ -122,6 +122,24 @@ func CategoryColorRules() []validation.Rule {
 	}
 }
 
+// TagNameRules is the ozzo-validation rule set for a tag name field.
+func TagNameRules() []validation.Rule {
+	return []validation.Rule{
+		validation.Required.Error("Please enter a tag name"),
+		validation.Length(0, entity.MaxTagNameLength).
+			Error(fmt.Sprintf("Tag name must be at most %d characters", entity.MaxTagNameLength)),
+	}
+}
+
+// TagColorRules is the ozzo-validation rule set for a tag color field. Not Required —
+// usecase.ResolveColor falls back to a default when it's blank.
+func TagColorRules() []validation.Rule {
+	return []validation.Rule{
+		validation.Length(0, entity.MaxTagColorLength).
+			Error(fmt.Sprintf("Tag color must be at most %d characters", entity.MaxTagColorLength)),
+	}
+}
+
 // CurrencySymbolRules is the ozzo-validation rule set for a currency symbol field.
 func CurrencySymbolRules() []validation.Rule {
 	return []validation.Rule{
@@ -196,6 +214,28 @@ func LanguageRules() []validation.Rule {
 		validation.Required.Error("Please choose a language"),
 		validation.Match(languageRE).Error("Language must be a valid language code, e.g. \"en\""),
 	}
+}
+
+// DedupeIDs drops zero values and duplicates from ids, preserving first-seen order — used to
+// normalize a transaction's tag id list before it's validated/persisted.
+func DedupeIDs(ids []uint64) []uint64 {
+	seen := make(map[uint64]struct{}, len(ids))
+	out := make([]uint64, 0, len(ids))
+
+	for _, id := range ids {
+		if id == 0 {
+			continue
+		}
+
+		if _, ok := seen[id]; ok {
+			continue
+		}
+
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+
+	return out
 }
 
 // DefaultCategoryColor is used whenever the caller doesn't supply a category color.

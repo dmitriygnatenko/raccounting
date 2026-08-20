@@ -44,6 +44,11 @@ import (
 
 	settingsGet "raccounting/internal/domain/usecase/settings/get"
 	settingsUpdate "raccounting/internal/domain/usecase/settings/update"
+
+	tagCreate "raccounting/internal/domain/usecase/tag/create"
+	tagDelete "raccounting/internal/domain/usecase/tag/delete"
+	tagList "raccounting/internal/domain/usecase/tag/list"
+	tagUpdate "raccounting/internal/domain/usecase/tag/update"
 )
 
 // newServer wires every use case the HTTP API depends on, grouped the same way httpAPI.Server groups
@@ -77,8 +82,18 @@ func newServer(repos repositories, svcs services, cookieSecure bool) *httpAPI.Se
 			List:   currencyList.New(repos.Currencies),
 		},
 		Transactions: httpAPI.TransactionUseCases{
-			Create: transactionCreate.New(repos.Transactions, repos.Accounts, repos.Categories),
-			Update: transactionUpdate.New(repos.Transactions, repos.Accounts, repos.Categories),
+			Create: transactionCreate.New(
+				repos.Transactions,
+				repos.Accounts,
+				repos.Categories,
+				repos.Tags,
+			),
+			Update: transactionUpdate.New(
+				repos.Transactions,
+				repos.Accounts,
+				repos.Categories,
+				repos.Tags,
+			),
 			Delete: transactionDelete.New(repos.Transactions),
 			List:   transactionList.New(repos.Transactions),
 		},
@@ -93,6 +108,12 @@ func newServer(repos repositories, svcs services, cookieSecure bool) *httpAPI.Se
 		Settings: httpAPI.SettingsUseCases{
 			Get:    settingsGet.New(repos.Users),
 			Update: settingsUpdate.New(repos.Users),
+		},
+		Tags: httpAPI.TagUseCases{
+			Create: tagCreate.New(repos.Tags),
+			Update: tagUpdate.New(repos.Tags),
+			Delete: tagDelete.New(repos.Tags),
+			List:   tagList.New(repos.Tags),
 		},
 		CookieSecure: cookieSecure,
 	}

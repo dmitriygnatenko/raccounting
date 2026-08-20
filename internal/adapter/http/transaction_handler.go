@@ -14,11 +14,12 @@ import (
 // row — it's implied by the sign of amount. Transfers are created through the separate
 // /api/transfers endpoint.
 type transactionRequest struct {
-	AccountID  uint64  `json:"accountId"`
-	CategoryID *uint64 `json:"categoryId"`
-	Memo       string  `json:"memo"`
-	Amount     int64   `json:"amount"`
-	Date       string  `json:"date"`
+	AccountID  uint64   `json:"accountId"`
+	CategoryID *uint64  `json:"categoryId"`
+	Memo       string   `json:"memo"`
+	Amount     int64    `json:"amount"`
+	Date       string   `json:"date"`
+	TagIDs     []uint64 `json:"tagIds"`
 }
 
 // transactionType derives expense/income from the amount's sign, matching how the frontend decides
@@ -71,6 +72,7 @@ func (s *Server) handleCreateTransaction(w http.ResponseWriter, r *http.Request)
 			Memo:       input.Memo,
 			Amount:     input.Amount,
 			Date:       input.Date,
+			TagIDs:     input.TagIDs,
 		},
 	)
 	if err != nil {
@@ -110,6 +112,7 @@ func (s *Server) handleUpdateTransaction(w http.ResponseWriter, r *http.Request)
 			Memo:       input.Memo,
 			Amount:     input.Amount,
 			Date:       input.Date,
+			TagIDs:     input.TagIDs,
 		},
 	)
 	if err != nil {
