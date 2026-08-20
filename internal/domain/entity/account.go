@@ -80,3 +80,30 @@ func (a Account) MarshalJSON() ([]byte, error) {
 		UpdatedAt: a.UpdatedAt,
 	})
 }
+
+// UnmarshalJSON is accountJSON's inverse — used to read an Account back out of a Backup file (see
+// entity.Backup).
+func (a *Account) UnmarshalJSON(data []byte) error {
+	var j accountJSON
+	if err := json.Unmarshal(data, &j); err != nil {
+		return err
+	}
+
+	status := AccountStatusActive
+	if j.Archived {
+		status = AccountStatusArchived
+	}
+
+	*a = Account{
+		ID:           j.ID,
+		Name:         j.Name,
+		Type:         AccountType(j.Type),
+		CurrencyCode: j.Currency,
+		Balance:      j.Balance,
+		Status:       status,
+		CreatedAt:    j.CreatedAt,
+		UpdatedAt:    j.UpdatedAt,
+	}
+
+	return nil
+}

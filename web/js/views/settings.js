@@ -16,6 +16,7 @@ App.SettingsView = {
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'currencies' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'currencies'">{{ App.t('Валюты') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'language' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'language'">{{ App.t('Язык') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'account' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'account'">{{ App.t('Аккаунт') }}</button>
+        <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'data' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'data'">{{ App.t('Данные') }}</button>
       </div>
 
       <div v-if="tab === 'accounts'" class="rounded-xl bg-white border border-ink-200 overflow-hidden">
@@ -232,6 +233,31 @@ App.SettingsView = {
           </button>
         </form>
       </div>
+
+      <div v-if="tab === 'data'" class="space-y-5 max-w-md">
+        <div class="rounded-xl bg-white border border-ink-200 p-4 md:p-5">
+          <h2 class="text-sm font-semibold text-ink-900 mb-1">{{ App.t('Экспорт данных') }}</h2>
+          <p class="text-xs text-ink-400 mb-4">{{ App.t('Скачайте файл со всеми счетами, категориями, тегами, операциями и бюджетом') }}</p>
+          <button type="button" :disabled="exportBusy" @click="exportData"
+            class="flex items-center gap-1.5 rounded-lg bg-brand-600 text-white text-sm font-medium px-3.5 py-2.5 hover:bg-brand-500 transition-colors cursor-pointer disabled:opacity-50">
+            <app-icon name="download" :size="16" />
+            {{ exportBusy ? App.t('Экспорт…') : App.t('Скачать файл') }}
+          </button>
+        </div>
+
+        <div class="rounded-xl bg-white border border-ink-200 p-4 md:p-5">
+          <h2 class="text-sm font-semibold text-ink-900 mb-1">{{ App.t('Импорт данных') }}</h2>
+          <p class="text-xs text-ink-400 mb-4">{{ App.t('Загрузите ранее сохранённый файл. Это заменит все текущие данные — счета, категории, теги, операции и бюджет.') }}</p>
+          <input ref="importInput" type="file" accept="application/json,.json" class="hidden" @change="onImportFileSelected" />
+          <button type="button" :disabled="importBusy" @click="$refs.importInput.click()"
+            class="flex items-center gap-1.5 rounded-lg bg-white border border-ink-200 text-ink-900 text-sm font-medium px-3.5 py-2.5 hover:bg-ink-50 transition-colors cursor-pointer disabled:opacity-50">
+            <app-icon name="upload" :size="16" />
+            {{ importBusy ? App.t('Импорт…') : App.t('Выбрать файл') }}
+          </button>
+          <p v-if="importError" class="text-sm text-money-neg mt-3">{{ importError }}</p>
+          <p v-if="importSuccess" class="text-sm text-money-pos mt-3">{{ importSuccess }}</p>
+        </div>
+      </div>
     </div>
   `,
   data() {
@@ -249,6 +275,10 @@ App.SettingsView = {
       accountError: '',
       accountSuccess: '',
       accountSaving: false,
+      exportBusy: false,
+      importBusy: false,
+      importError: '',
+      importSuccess: '',
     }
   },
   computed: {
@@ -290,6 +320,53 @@ App.SettingsView = {
         this.accountError = App.t('Неверный текущий пароль')
       } finally {
         this.accountSaving = false
+      }
+    },
+    async exportData() {
+      this.exportBusy = true
+      try {
+        const { blob, filename } = await App.api.exportData()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+      } finally {
+        this.exportBusy = false
+      }
+    },
+    async onImportFileSelected(event) {
+      const file = event.target.files?.[0]
+      event.target.value = ''
+      if (!file) return
+
+      this.importError = ''
+      this.importSuccess = ''
+
+      let backup
+      try {
+        backup = JSON.parse(await file.text())
+      } catch {
+        this.importError = App.t('Не удалось прочитать файл — это не похоже на файл экспорта raccounting')
+        return
+      }
+
+      if (!confirm(App.t('Импорт заменит все текущие счета, категории, теги, операции и бюджет данными из файла. Отменить это будет нельзя. Продолжить?'))) {
+        return
+      }
+
+      this.importBusy = true
+      try {
+        await App.api.importData(backup)
+        await App.financeStore.reload()
+        this.importSuccess = App.t('Данные импортированы')
+      } catch (e) {
+        this.importError = e.message || App.t('Не удалось импортировать данные')
+      } finally {
+        this.importBusy = false
       }
     },
   },

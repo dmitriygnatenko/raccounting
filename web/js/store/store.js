@@ -38,6 +38,13 @@ function createFinanceStore() {
     state.loaded = true
   }
 
+  // Used after a full data import (see App.api.importData): every id in state is now stale, so the
+  // simplest correct thing is to throw it all away and load() fresh, same as first startup.
+  async function reload() {
+    state.loaded = false
+    await load()
+  }
+
   function budgetFor(categoryId, monthKey) {
     return state.categoryBudgets[categoryId]?.[monthKey] ?? 0
   }
@@ -265,6 +272,7 @@ function createFinanceStore() {
     toBase,
     amountInBase,
     load,
+    reload,
     addTransaction,
     updateTransaction,
     deleteTransaction,
