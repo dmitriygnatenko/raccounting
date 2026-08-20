@@ -82,7 +82,7 @@ App.TransactionsView = {
               <button class="hidden lg:grid w-full text-left grid-cols-[160px_140px_1fr_120px_32px] gap-3 items-center px-5 py-3 hover:bg-ink-50/60 transition-colors cursor-pointer"
                 @click="ui.openEditTransaction(t)">
                 <span class="text-sm truncate">
-                  <span v-if="t.type === 'transfer'" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ink-100 text-ink-500">
+                  <span v-if="t.type === App.TransactionType.TRANSFER" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ink-100 text-ink-500">
                     <app-icon name="transfer" :size="12" />
                     {{ App.t('Перевод') }}
                   </span>
@@ -106,11 +106,11 @@ App.TransactionsView = {
               <button class="lg:hidden w-full text-left flex items-center gap-3 px-4 py-3 active:bg-ink-50 transition-colors cursor-pointer" @click="ui.openEditTransaction(t)">
                 <span class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold"
                   :style="{ background: (finance.categoryById.get(t.categoryId ?? '')?.color ?? '#94a3b8') + '1a', color: finance.categoryById.get(t.categoryId ?? '')?.color ?? '#94a3b8' }">
-                  {{ (t.type === 'transfer' ? App.t('Перевод') : (finance.categoryById.get(t.categoryId ?? '')?.name ?? '?')).slice(0, 1).toUpperCase() }}
+                  {{ (t.type === App.TransactionType.TRANSFER ? App.t('Перевод') : (finance.categoryById.get(t.categoryId ?? '')?.name ?? '?')).slice(0, 1).toUpperCase() }}
                 </span>
                 <span class="min-w-0 flex-1">
                   <span class="flex items-center justify-between gap-2">
-                    <span class="text-sm font-medium text-ink-900 truncate">{{ t.type === 'transfer' ? App.t('Перевод') : App.t(finance.categoryById.get(t.categoryId ?? '')?.name ?? 'Без категории') }}</span>
+                    <span class="text-sm font-medium text-ink-900 truncate">{{ t.type === App.TransactionType.TRANSFER ? App.t('Перевод') : App.t(finance.categoryById.get(t.categoryId ?? '')?.name ?? 'Без категории') }}</span>
                     <span class="text-sm font-semibold shrink-0" :class="t.amount < 0 ? 'text-money-neg' : 'text-money-pos'">
                       {{ t.amount < 0 ? '−' : '+' }}{{ App.formatMoney(Math.abs(t.amount), finance.accountById.get(t.accountId)?.currency) }}
                     </span>
@@ -152,8 +152,8 @@ App.TransactionsView = {
         .filter((t) => !this.filters.categoryId || t.categoryId === this.filters.categoryId)
         .filter((t) => {
           if (this.filters.direction === 'all') return true
-          if (this.filters.direction === 'transfer') return t.type === 'transfer'
-          if (t.type === 'transfer') return false
+          if (this.filters.direction === 'transfer') return t.type === App.TransactionType.TRANSFER
+          if (t.type === App.TransactionType.TRANSFER) return false
           return this.filters.direction === 'expense' ? t.amount < 0 : t.amount > 0
         })
         .filter((t) => this.inPeriod(t.date))

@@ -9,13 +9,14 @@ import (
 	"raccounting/internal/domain/usecase"
 )
 
-// Input is what UpdateTransaction needs to change an existing expense/income transaction. Amount
-// is signed: negative for an expense, positive for income.
+// Input is what UpdateTransaction needs to change an existing expense/income transaction. Type is
+// the bare numeric entity.TransactionType value. Amount is signed: negative for an expense,
+// positive for income.
 type Input struct {
 	ID         uint64
 	AccountID  uint64
 	CategoryID *uint64
-	Type       string
+	Type       uint8
 	Memo       string
 	Amount     int64
 	Date       string
@@ -29,7 +30,7 @@ func (i Input) Validate() error {
 		validation.Field(&i.AccountID, usecase.AccountIDRules()...),
 		validation.Field(&i.Type,
 			validation.Required.Error("Transaction type must be \"expense\" or \"income\""),
-			validation.In(entity.TransactionTypeExpense.String(), entity.TransactionTypeIncome.String()).
+			validation.In(uint8(entity.TransactionTypeExpense), uint8(entity.TransactionTypeIncome)).
 				Error("Transaction type must be \"expense\" or \"income\""),
 		),
 		validation.Field(&i.Memo, validation.Length(0, entity.MaxMemoLength).

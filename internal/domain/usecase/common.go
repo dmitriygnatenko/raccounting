@@ -163,20 +163,6 @@ func CategoryIDRules() []validation.Rule {
 	}
 }
 
-// TransactionTypeRules is the ozzo-validation rule set for a transaction type field.
-func TransactionTypeRules() []validation.Rule {
-	const msg = "Transaction type must be \"expense\", \"income\" or \"transfer\""
-
-	return []validation.Rule{
-		validation.Required.Error(msg),
-		validation.In(
-			entity.TransactionTypeExpense.String(),
-			entity.TransactionTypeIncome.String(),
-			entity.TransactionTypeTransfer.String(),
-		).Error(msg),
-	}
-}
-
 // dateRE matches entity.DateLayout ("YYYY-MM-DD").
 var dateRE = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 

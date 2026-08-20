@@ -166,7 +166,7 @@ App.TransactionModal = {
     'ui.transactionModalOpen'(open) {
       if (!open) return
       const editing = this.ui.editingTransaction
-      if (editing && editing.type === 'transfer') {
+      if (editing && editing.type === App.TransactionType.TRANSFER) {
         const isOutgoing = editing.amount < 0
         this.form = {
           date: editing.date,
@@ -229,14 +229,14 @@ App.TransactionModal = {
             date: this.form.date,
             memo: this.form.memo.trim(),
           }
-          if (this.isEditing && this.ui.editingTransaction.type === 'transfer') {
+          if (this.isEditing && this.ui.editingTransaction.type === App.TransactionType.TRANSFER) {
             await this.finance.updateTransfer(this.ui.editingTransaction.id, payload)
           } else {
             await this.finance.addTransfer(payload)
           }
         } else {
           const signedAmount = this.form.direction === 'expense' ? -Math.abs(amountNum) : Math.abs(amountNum)
-          if (this.isEditing && this.ui.editingTransaction.type !== 'transfer') {
+          if (this.isEditing && this.ui.editingTransaction.type !== App.TransactionType.TRANSFER) {
             await this.finance.updateTransaction({
               ...this.ui.editingTransaction,
               date: this.form.date,
@@ -272,7 +272,7 @@ App.TransactionModal = {
     async remove() {
       if (!this.ui.editingTransaction) return
       this.saving = true
-      if (this.ui.editingTransaction.type === 'transfer') {
+      if (this.ui.editingTransaction.type === App.TransactionType.TRANSFER) {
         try {
           await this.finance.deleteTransfer(this.ui.editingTransaction.id)
           this.close()

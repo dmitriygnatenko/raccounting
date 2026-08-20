@@ -11,11 +11,12 @@ import (
 
 // Input is what CreateTransaction needs to record a new expense/income. Transfers are created
 // through the dedicated transfer/create use case instead — Type here is restricted to
-// expense/income (see Validate). Amount is signed: negative for an expense, positive for income.
+// expense/income (see Validate). Type is the bare numeric entity.TransactionType value. Amount is
+// signed: negative for an expense, positive for income.
 type Input struct {
 	AccountID  uint64
 	CategoryID *uint64
-	Type       string
+	Type       uint8
 	Memo       string
 	Amount     int64
 	Date       string
@@ -29,7 +30,7 @@ func (i Input) Validate() error {
 		validation.Field(&i.AccountID, usecase.AccountIDRules()...),
 		validation.Field(&i.Type,
 			validation.Required.Error("Transaction type must be \"expense\" or \"income\""),
-			validation.In(entity.TransactionTypeExpense.String(), entity.TransactionTypeIncome.String()).
+			validation.In(uint8(entity.TransactionTypeExpense), uint8(entity.TransactionTypeIncome)).
 				Error("Transaction type must be \"expense\" or \"income\""),
 		),
 		validation.Field(&i.Memo, validation.Length(0, entity.MaxMemoLength).

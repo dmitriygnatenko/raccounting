@@ -94,10 +94,10 @@ App.DashboardView = {
       return App.formatMonthLabel(this.now.getFullYear(), this.now.getMonth())
     },
     monthExpenses() {
-      return this.finance.state.transactions.filter((t) => t.type !== 'transfer' && t.amount < 0 && monthKey(t.date) === this.currentMonthKey)
+      return this.finance.state.transactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount < 0 && monthKey(t.date) === this.currentMonthKey)
     },
     monthIncome() {
-      return this.finance.state.transactions.filter((t) => t.type !== 'transfer' && t.amount > 0 && monthKey(t.date) === this.currentMonthKey)
+      return this.finance.state.transactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount > 0 && monthKey(t.date) === this.currentMonthKey)
     },
     totalExpense() {
       return this.monthExpenses.reduce((s, t) => s + Math.abs(this.finance.amountInBase(t)), 0)
@@ -126,7 +126,7 @@ App.DashboardView = {
         months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: App.formatMonthLabel(d.getFullYear(), d.getMonth()), income: 0, expense: 0 })
       }
       for (const t of this.finance.state.transactions) {
-        if (t.type === 'transfer') continue
+        if (t.type === App.TransactionType.TRANSFER) continue
         const key = monthKey(t.date)
         const m = months.find((x) => x.key === key)
         if (!m) continue

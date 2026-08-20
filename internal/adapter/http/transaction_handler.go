@@ -21,14 +21,14 @@ type transactionRequest struct {
 	Date       string  `json:"date"`
 }
 
-// transactionType derives "expense"/"income" from the amount's sign, matching how the frontend
-// decides direction (form.direction === 'expense' ? -Math.abs(amount) : Math.abs(amount)).
-func transactionType(amount int64) string {
+// transactionType derives expense/income from the amount's sign, matching how the frontend decides
+// direction (form.direction === 'expense' ? -Math.abs(amount) : Math.abs(amount)).
+func transactionType(amount int64) uint8 {
 	if amount < 0 {
-		return entity.TransactionTypeExpense.String()
+		return uint8(entity.TransactionTypeExpense)
 	}
 
-	return entity.TransactionTypeIncome.String()
+	return uint8(entity.TransactionTypeIncome)
 }
 
 // handleListTransactions handles GET /api/transactions.
