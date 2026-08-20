@@ -20,29 +20,6 @@ const (
 	TransactionTypeTransfer
 )
 
-var transactionTypeNames = map[TransactionType]string{
-	TransactionTypeIncome:   "income",
-	TransactionTypeExpense:  "expense",
-	TransactionTypeTransfer: "transfer",
-}
-
-// String returns the wire-format name for t, or "" if t is not a known transaction type.
-func (t TransactionType) String() string {
-	return transactionTypeNames[t]
-}
-
-// ParseTransactionType parses a wire-format transaction type string. ok is false for an
-// unrecognized value.
-func ParseTransactionType(s string) (TransactionType, bool) {
-	for t, name := range transactionTypeNames {
-		if name == s {
-			return t, true
-		}
-	}
-
-	return 0, false
-}
-
 // Transaction is a single ledger entry: an expense, income, or one leg of a transfer between two
 // accounts. Transfer legs share a TransferTransactionID pointing at each other and carry CategoryID
 // nil. Amount is signed: negative for money leaving Account (expense, or a transfer's debit leg),
@@ -70,11 +47,12 @@ func (t Transaction) IsTransfer() bool {
 	return t.Type == TransactionTypeTransfer
 }
 
-// transactionJSON is Transaction's wire shape: Type as its string name, amounts as decimal
-// major-unit values, OperationAt as a bare date.
+// transactionJSON is Transaction's wire shape: Type as its bare numeric value (the frontend keeps
+// its own App.TransactionType constants), amounts as decimal major-unit values, OperationAt as a
+// bare date.
 type transactionJSON struct {
 	ID                    uint64    `json:"id"`
-	Type                  string    `json:"type"`
+	Type                  uint8     `json:"type"`
 	AccountID             uint64    `json:"accountId"`
 	CategoryID            *uint64   `json:"categoryId,omitempty"`
 	Currency              string    `json:"currency"`
@@ -93,7 +71,7 @@ type transactionJSON struct {
 func (t Transaction) MarshalJSON() ([]byte, error) {
 	j := transactionJSON{
 		ID:                    t.ID,
-		Type:                  t.Type.String(),
+		Type:                  uint8(t.Type),
 		AccountID:             t.AccountID,
 		CategoryID:            t.CategoryID,
 		Currency:              t.CurrencyCode,

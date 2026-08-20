@@ -162,7 +162,7 @@ App.ReportsView = {
       return this.finance.state.transactions.filter((t) => this.inPeriod(t.date, this.period, this.dateFrom, this.dateTo))
     },
     summary() {
-      const nonTransfer = this.periodTransactions.filter((t) => t.type !== 'transfer')
+      const nonTransfer = this.periodTransactions.filter((t) => t.type !== App.TransactionType.TRANSFER)
       const income = nonTransfer.filter((t) => t.amount > 0).reduce((s, t) => s + this.finance.amountInBase(t), 0)
       const expense = nonTransfer.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(this.finance.amountInBase(t)), 0)
       return { income, expense, net: income - expense }
@@ -170,7 +170,7 @@ App.ReportsView = {
     categoryBreakdown() {
       const sums = new Map()
       for (const t of this.periodTransactions) {
-        if (t.type === 'transfer') continue
+        if (t.type === App.TransactionType.TRANSFER) continue
         const matchesType = this.type === 'expense' ? t.amount < 0 : t.amount > 0
         if (!matchesType) continue
         const key = t.categoryId ?? (this.type === 'expense' ? 'other-expense' : 'other-income')
@@ -225,7 +225,7 @@ App.ReportsView = {
       const monthKey = this.budgetMonthKey
       const spentByCategory = new Map()
       for (const t of this.finance.state.transactions) {
-        if (t.amount >= 0 || t.type === 'transfer') continue
+        if (t.amount >= 0 || t.type === App.TransactionType.TRANSFER) continue
         const d = new Date(t.date)
         if (d.getFullYear() !== target.getFullYear() || d.getMonth() !== target.getMonth()) continue
         const key = t.categoryId ?? 'other-expense'

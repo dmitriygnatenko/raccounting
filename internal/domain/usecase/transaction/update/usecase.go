@@ -93,13 +93,11 @@ func (uc *UseCase) Execute(
 		return Output{}, &domainError.ValidationError{Message: "Date must be in YYYY-MM-DD format"}
 	}
 
-	transactionType, _ := entity.ParseTransactionType(input.Type)
-
 	tx, err := uc.transactionRepository.Update(ctx, port.TransactionUpdateRequest{
 		ID:           input.ID,
 		AccountID:    input.AccountID,
 		CategoryID:   input.CategoryID,
-		Type:         transactionType,
+		Type:         entity.TransactionType(input.Type),
 		CurrencyCode: account.CurrencyCode,
 		Amount:       input.Amount,
 		Memo:         strings.TrimSpace(input.Memo),
