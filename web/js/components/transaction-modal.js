@@ -1,5 +1,21 @@
 window.App = window.App || {};
 
+const LAST_ACCOUNT_KEY = 'raccounting.lastAccountId'
+
+function getStoredAccountId() {
+  try {
+    return localStorage.getItem(LAST_ACCOUNT_KEY) || null
+  } catch {
+    return null
+  }
+}
+
+function setStoredAccountId(id) {
+  try {
+    if (id) localStorage.setItem(LAST_ACCOUNT_KEY, id)
+  } catch {}
+}
+
 App.TransactionModal = {
   components: { 'app-icon': App.AppIcon },
   template: `
@@ -235,9 +251,12 @@ App.TransactionModal = {
           tagIds: [...(editing.tagIds ?? [])],
         }
       } else {
+        const storedAccountId = getStoredAccountId()
+        const storedAccount = this.finance.state.accounts.find((a) => String(a.id) === storedAccountId)
+        const defaultAccountId = storedAccount ? storedAccount.id : this.finance.state.accounts[0]?.id ?? ''
         this.form = {
           date: new Date().toISOString().slice(0, 10),
-          accountId: this.finance.state.accounts[0]?.id ?? '',
+          accountId: defaultAccountId,
           toAccountId: '',
           categoryId: '',
           memo: '',
@@ -281,6 +300,7 @@ App.TransactionModal = {
     async submit() {
       const amountNum = Math.round(Number(this.form.amount))
       if (!amountNum || !this.form.accountId) return
+      const wasEditing = this.isEditing
       this.saving = true
       try {
         if (this.form.direction === 'transfer') {
@@ -337,6 +357,7 @@ App.TransactionModal = {
             })
           }
         }
+        if (!wasEditing) setStoredAccountId(this.form.accountId)
         this.close()
       } finally {
         this.saving = false
