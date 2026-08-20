@@ -1,5 +1,7 @@
 package port
 
+//go:generate go tool mockgen -source=session_repository.go -destination=mocks/session_repository_mock.go -package=mocks
+
 import (
 	"context"
 	"time"

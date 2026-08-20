@@ -1,5 +1,7 @@
 package port
 
+//go:generate go tool mockgen -source=account_repository.go -destination=mocks/account_repository_mock.go -package=mocks
+
 import (
 	"context"
 
@@ -25,11 +27,13 @@ type AccountUpdateRequest struct {
 	Archived     bool
 }
 
-// AccountRepository persists Accounts
+// AccountRepository persists Accounts.
 type AccountRepository interface {
 	List(ctx context.Context) ([]entity.Account, error)
 	// FindByID returns a *domainerror.NotFoundError if no account with this id exists.
 	FindByID(ctx context.Context, id uint64) (entity.Account, error)
+	// Create returns a *domainerror.ConflictError if Balance is negative — an opening balance can
+	// never be negative.
 	Create(ctx context.Context, req AccountCreateRequest) (entity.Account, error)
 	// Update returns a *domainerror.NotFoundError if no account with this id exists.
 	Update(ctx context.Context, req AccountUpdateRequest) (entity.Account, error)
