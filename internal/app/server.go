@@ -11,10 +11,10 @@ import (
 
 	httpAPI "raccounting/internal/adapter/http"
 
-	"raccounting/internal/domain/usecase/auth/authenticate"
-	"raccounting/internal/domain/usecase/auth/login"
-	"raccounting/internal/domain/usecase/auth/logout"
-	"raccounting/internal/domain/usecase/auth/updatecredentials"
+	authAuthenticate "raccounting/internal/domain/usecase/auth/authenticate"
+	authLogin "raccounting/internal/domain/usecase/auth/login"
+	authLogout "raccounting/internal/domain/usecase/auth/logout"
+	authUpdateCreds "raccounting/internal/domain/usecase/auth/updatecredentials"
 
 	accountCreate "raccounting/internal/domain/usecase/account/create"
 	accountDelete "raccounting/internal/domain/usecase/account/delete"
@@ -39,8 +39,8 @@ import (
 	transferCreate "raccounting/internal/domain/usecase/transfer/create"
 	transferDelete "raccounting/internal/domain/usecase/transfer/delete"
 
-	categoryBudgetList "raccounting/internal/domain/usecase/categorybudget/list"
-	categoryBudgetSet "raccounting/internal/domain/usecase/categorybudget/set"
+	budgetList "raccounting/internal/domain/usecase/categorybudget/list"
+	budgetSet "raccounting/internal/domain/usecase/categorybudget/set"
 
 	settingsGet "raccounting/internal/domain/usecase/settings/get"
 	settingsUpdate "raccounting/internal/domain/usecase/settings/update"
@@ -53,10 +53,10 @@ import (
 func newServer(repos repositories, svcs services, cookieSecure bool) *httpAPI.Server {
 	return &httpAPI.Server{
 		Auth: httpAPI.AuthUseCases{
-			Login:             login.New(repos.Users, repos.Sessions, svcs.Hasher, svcs.Tokens),
-			Logout:            logout.New(repos.Sessions),
-			Authenticate:      authenticate.New(repos.Sessions, repos.Users),
-			UpdateCredentials: updatecredentials.New(repos.Users, svcs.Hasher),
+			Login:             authLogin.New(repos.Users, repos.Sessions, svcs.Hasher, svcs.Tokens),
+			Logout:            authLogout.New(repos.Sessions),
+			Authenticate:      authAuthenticate.New(repos.Sessions, repos.Users),
+			UpdateCredentials: authUpdateCreds.New(repos.Users, svcs.Hasher),
 		},
 		Accounts: httpAPI.AccountUseCases{
 			Create: accountCreate.New(repos.Accounts, repos.Currencies),
@@ -86,9 +86,9 @@ func newServer(repos repositories, svcs services, cookieSecure bool) *httpAPI.Se
 			Create: transferCreate.New(repos.Transactions, repos.Accounts),
 			Delete: transferDelete.New(repos.Transactions),
 		},
-		CategoryBudgets: httpAPI.CategoryBudgetUseCases{
-			Set:  categoryBudgetSet.New(repos.CategoryBudgets, repos.Categories),
-			List: categoryBudgetList.New(repos.CategoryBudgets),
+		Budgets: httpAPI.CategoryBudgetUseCases{
+			Set:  budgetSet.New(repos.Budgets, repos.Categories),
+			List: budgetList.New(repos.Budgets),
 		},
 		Settings: httpAPI.SettingsUseCases{
 			Get:    settingsGet.New(repos.Users),

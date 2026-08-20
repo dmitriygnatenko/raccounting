@@ -103,14 +103,14 @@ type SettingsUseCases struct {
 // Server holds every use case the API surfaces, plus the handful of settings the HTTP layer itself
 // is responsible for (cookie flags).
 type Server struct {
-	Auth            AuthUseCases
-	Accounts        AccountUseCases
-	Categories      CategoryUseCases
-	Currencies      CurrencyUseCases
-	Transactions    TransactionUseCases
-	Transfers       TransferUseCases
-	CategoryBudgets CategoryBudgetUseCases
-	Settings        SettingsUseCases
+	Auth         AuthUseCases
+	Accounts     AccountUseCases
+	Categories   CategoryUseCases
+	Currencies   CurrencyUseCases
+	Transactions TransactionUseCases
+	Transfers    TransferUseCases
+	Budgets      CategoryBudgetUseCases
+	Settings     SettingsUseCases
 
 	// CookieSecure sets the session cookie's Secure flag — true once the app is served over HTTPS.
 	CookieSecure bool
