@@ -50,7 +50,7 @@ func (uc *UseCase) Execute(
 	existing, err := uc.transactionRepository.FindByID(ctx, input.ID)
 	if err != nil {
 		if domainError.IsNotFoundError(err) {
-			return Output{}, err
+			return Output{}, &domainError.NotFoundError{Message: "Transaction not found"}
 		}
 
 		slog.ErrorContext(ctx, "update transaction: find", "id", input.ID, "error", err)
@@ -106,8 +106,12 @@ func (uc *UseCase) Execute(
 		OperationAt:  operationAt,
 	})
 	if err != nil {
-		if domainError.IsNotFoundError(err) || domainError.IsConflictError(err) {
-			return Output{}, err
+		if domainError.IsNotFoundError(err) {
+			return Output{}, &domainError.NotFoundError{Message: "Transaction not found"}
+		}
+
+		if domainError.IsConflictError(err) {
+			return Output{}, &domainError.ConflictError{Message: "This would overdraw the account"}
 		}
 
 		slog.ErrorContext(ctx, "update transaction: save", "id", input.ID, "error", err)

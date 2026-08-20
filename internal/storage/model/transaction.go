@@ -6,7 +6,10 @@ import (
 	"raccounting/internal/domain/entity"
 )
 
-// Transaction is the shape of a row in the transactions table.
+// Transaction is the shape of a row in the transactions table. The Transfer* columns are only
+// populated on a transfer leg (Type == entity.TransactionTypeTransfer): they mirror the paired
+// leg's own id/currency/amount/rate/account, stored redundantly on each row at transfer creation so
+// a read never needs to join back to the other leg. They stay NULL for a plain expense/income row.
 type Transaction struct {
 	ID                    uint64
 	CategoryID            *uint64

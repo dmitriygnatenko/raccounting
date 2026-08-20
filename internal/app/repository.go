@@ -7,7 +7,6 @@ import (
 	currencyRepo "raccounting/internal/repository/currency"
 	sessionRepo "raccounting/internal/repository/session"
 	transactionRepo "raccounting/internal/repository/transaction"
-	transferRepo "raccounting/internal/repository/transfer"
 	userRepo "raccounting/internal/repository/user"
 )
 
@@ -21,7 +20,6 @@ type repositories struct {
 	Categories      *categoryRepo.Repository
 	Currencies      *currencyRepo.Repository
 	Transactions    *transactionRepo.Repository
-	Transfers       *transferRepo.Repository
 	CategoryBudgets *categoryBudgetRepo.Repository
 }
 
@@ -34,7 +32,6 @@ func newRepositories(store storage) repositories {
 		Categories:      categoryRepo.New(store),
 		Currencies:      currencyRepo.New(store),
 		Transactions:    transactionRepo.New(store),
-		Transfers:       transferRepo.New(store),
 		CategoryBudgets: categoryBudgetRepo.New(store),
 	}
 }

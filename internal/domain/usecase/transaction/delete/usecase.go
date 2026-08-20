@@ -35,7 +35,7 @@ func (uc *UseCase) Execute(
 	existing, err := uc.transactionRepository.FindByID(ctx, input.ID)
 	if err != nil {
 		if domainError.IsNotFoundError(err) {
-			return err
+			return &domainError.NotFoundError{Message: "Transaction not found"}
 		}
 
 		slog.ErrorContext(ctx, "delete transaction: find", "id", input.ID, "error", err)
@@ -50,8 +50,12 @@ func (uc *UseCase) Execute(
 	}
 
 	if err = uc.transactionRepository.Delete(ctx, input.ID); err != nil {
-		if domainError.IsNotFoundError(err) || domainError.IsConflictError(err) {
-			return err
+		if domainError.IsNotFoundError(err) {
+			return &domainError.NotFoundError{Message: "Transaction not found"}
+		}
+
+		if domainError.IsConflictError(err) {
+			return &domainError.ConflictError{Message: "This would overdraw the account"}
 		}
 
 		slog.ErrorContext(ctx, "delete transaction: delete", "id", input.ID, "error", err)

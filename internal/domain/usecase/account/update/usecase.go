@@ -67,7 +67,7 @@ func (uc *UseCase) Execute(
 	})
 	if err != nil {
 		if domainError.IsNotFoundError(err) {
-			return Output{}, err
+			return Output{}, &domainError.NotFoundError{Message: "Account not found"}
 		}
 
 		slog.ErrorContext(ctx, "update account: save", "id", input.ID, "error", err)

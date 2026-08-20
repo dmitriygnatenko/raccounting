@@ -83,8 +83,8 @@ func newServer(repos repositories, svcs services, cookieSecure bool) *httpAPI.Se
 			List:   transactionList.New(repos.Transactions),
 		},
 		Transfers: httpAPI.TransferUseCases{
-			Create: transferCreate.New(repos.Transfers, repos.Accounts),
-			Delete: transferDelete.New(repos.Transfers),
+			Create: transferCreate.New(repos.Transactions, repos.Accounts),
+			Delete: transferDelete.New(repos.Transactions),
 		},
 		CategoryBudgets: httpAPI.CategoryBudgetUseCases{
 			Set:  categoryBudgetSet.New(repos.CategoryBudgets, repos.Categories),

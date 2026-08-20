@@ -34,8 +34,12 @@ func (uc *UseCase) Execute(
 ) error {
 	err := uc.categoryRepository.Delete(ctx, input.ID)
 	if err != nil {
-		if domainError.IsNotFoundError(err) || domainError.IsConflictError(err) {
-			return err
+		if domainError.IsNotFoundError(err) {
+			return &domainError.NotFoundError{Message: "Category not found"}
+		}
+
+		if domainError.IsConflictError(err) {
+			return &domainError.ConflictError{Message: "This category is in use — remove its transactions first"}
 		}
 
 		slog.ErrorContext(ctx, "delete category: delete", "id", input.ID, "error", err)

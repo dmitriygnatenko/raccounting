@@ -59,9 +59,10 @@ func (uc *UseCase) Execute(
 
 	if newUsername := usecase.NormalizeUsername(input.NewUsername); newUsername != "" && newUsername != updated.Username {
 		if err = uc.userRepository.UpdateUsername(ctx, updated.ID, newUsername); err != nil {
-			var conflict *domainerror.ConflictError
-			if errors.As(err, &conflict) {
-				return Output{}, conflict
+			if domainerror.IsConflictError(err) {
+				return Output{}, &domainerror.ConflictError{
+					Message: "A user with this username is already registered",
+				}
 			}
 
 			slog.ErrorContext(ctx, "update credentials: update username", "error", err)

@@ -88,7 +88,7 @@ func (uc *UseCase) Execute(
 	})
 	if err != nil {
 		if domainError.IsConflictError(err) {
-			return Output{}, err
+			return Output{}, &domainError.ConflictError{Message: "This would overdraw the account"}
 		}
 
 		slog.ErrorContext(ctx, "create transaction: save", "error", err)

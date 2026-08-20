@@ -1,6 +1,7 @@
 // Package user implements port.UserRepository on top of the users table: it converts row models
 // into domain entities and turns the storage layer's raw errors into domain errors — a missing row
-// into *domainerror.NotFoundError, a username collision into *domainerror.ConflictError.
+// into *domainerror.NotFoundError, a username collision into *domainerror.ConflictError. Both are
+// message-less; the use case supplies the text.
 package user
 
 import (
@@ -15,8 +16,7 @@ import (
 	"raccounting/internal/storage/model"
 )
 
-// conflictMessage is what both write paths report when a username is already taken.
-const conflictMessage = "A user with this username is already registered"
+//go:generate go tool mockgen -source=repository.go -destination=mocks/storage_mock.go -package=mocks
 
 // Storage is the slice of the mysql adapter this repository uses — the users table and nothing
 // else.
@@ -38,10 +38,10 @@ type Storage interface {
 	UpdateUserPasswordHash(ctx context.Context, id uint64, hash string) error
 
 	// GetUserSettings returns userID's settings JSON blob, zero-valued if the column is still NULL.
-	GetUserSettings(ctx context.Context, userID uint64) (model.UserSettings, error)
+	GetUserSettings(ctx context.Context, id uint64) (model.UserSettings, error)
 
 	// UpdateUserSettings overwrites userID's settings JSON blob.
-	UpdateUserSettings(ctx context.Context, userID uint64, settings model.UserSettings) error
+	UpdateUserSettings(ctx context.Context, id uint64, settings model.UserSettings) error
 
 	CountUsers(ctx context.Context) (int, error)
 }
@@ -56,41 +56,63 @@ func New(s Storage) *Repository {
 	return &Repository{storage: s}
 }
 
-// FindByUsername looks up a user by their (already-normalized) username.
+// FindByUsername looks up a user by their (already-normalized) username. An unknown username is
+// reported as a message-less *domainerror.NotFoundError — the use case supplies the message.
 func (r *Repository) FindByUsername(ctx context.Context, username string) (entity.User, error) {
 	m, err := r.storage.FindUserByUsername(ctx, username)
 	if err != nil {
-		return entity.User{}, notFound(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return entity.User{}, &domainerror.NotFoundError{}
+		}
+
+		return entity.User{}, err
 	}
 
 	return m.ToEntity(), nil
 }
 
-// FindByID looks up a user by id.
+// FindByID looks up a user by id. An unknown id is reported as a message-less
+// *domainerror.NotFoundError — the use case supplies the message.
 func (r *Repository) FindByID(ctx context.Context, id uint64) (entity.User, error) {
 	m, err := r.storage.FindUserByID(ctx, id)
 	if err != nil {
-		return entity.User{}, notFound(err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return entity.User{}, &domainerror.NotFoundError{}
+		}
+
+		return entity.User{}, err
 	}
 
 	return m.ToEntity(), nil
 }
 
-// Create inserts a new user and returns its id. A username collision is reported as a
-// *domainerror.ConflictError.
+// Create inserts a new user and returns its id. A username collision is reported as a message-less
+// *domainerror.ConflictError — the use case supplies the message.
 func (r *Repository) Create(ctx context.Context, req port.UserCreateRequest) (uint64, error) {
 	id, err := r.storage.CreateUser(ctx, req.Username, req.PasswordHash)
 	if err != nil {
-		return 0, conflict(err)
+		if errors.Is(err, storageError.UniqueViolationError) {
+			return 0, &domainerror.ConflictError{}
+		}
+
+		return 0, err
 	}
 
 	return id, nil
 }
 
 // UpdateUsername renames a user's login username. A collision with an existing username is reported
-// as a *domainerror.ConflictError.
+// as a message-less *domainerror.ConflictError — the use case supplies the message.
 func (r *Repository) UpdateUsername(ctx context.Context, id uint64, username string) error {
-	return conflict(r.storage.UpdateUsername(ctx, id, username))
+	if err := r.storage.UpdateUsername(ctx, id, username); err != nil {
+		if errors.Is(err, storageError.UniqueViolationError) {
+			return &domainerror.ConflictError{}
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 // UpdatePasswordHash overwrites a user's stored password hash.
@@ -116,24 +138,4 @@ func (r *Repository) UpdateSettings(ctx context.Context, id uint64, language str
 // Count returns the total number of users — used to decide whether to auto-provision on login.
 func (r *Repository) Count(ctx context.Context) (int, error) {
 	return r.storage.CountUsers(ctx)
-}
-
-// notFound translates "no such row" into the domain's NotFoundError, passing any other error
-// through.
-func notFound(err error) error {
-	if errors.Is(err, sql.ErrNoRows) {
-		return &domainerror.NotFoundError{Message: "User not found"}
-	}
-
-	return err
-}
-
-// conflict translates a unique-constraint violation into the domain's ConflictError, passing any
-// other error (including nil) through.
-func conflict(err error) error {
-	if errors.Is(err, storageError.UniqueViolationError) {
-		return &domainerror.ConflictError{Message: conflictMessage}
-	}
-
-	return err
 }
