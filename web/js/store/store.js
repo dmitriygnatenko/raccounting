@@ -208,9 +208,11 @@ function createFinanceStore() {
     if (idx !== -1) state.categories[idx] = category
   }
 
+  // isCategoryInUse only checks transactions — a category's budget entries don't block deletion,
+  // they're just removed along with it (see deleteCategory; the backend cascades budgets.category_id
+  // ON DELETE CASCADE).
   function isCategoryInUse(id) {
-    const hasBudget = state.categoryBudgets[id] && Object.keys(state.categoryBudgets[id]).length > 0
-    return state.transactions.some((t) => t.categoryId === id) || !!hasBudget
+    return state.transactions.some((t) => t.categoryId === id)
   }
 
   async function archiveCategory(id) {
@@ -229,6 +231,7 @@ function createFinanceStore() {
     if (isCategoryInUse(id)) return
     await App.api.deleteCategory(id)
     state.categories = state.categories.filter((c) => c.id !== id)
+    delete state.categoryBudgets[id]
   }
 
   async function addTag(tag) {

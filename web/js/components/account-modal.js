@@ -44,6 +44,8 @@ App.AccountModal = {
                 <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Начальный баланс') }}</label>
                 <input v-model="form.balance" type="number" step="1" placeholder="0"
                   class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
+                <p v-if="isDebtType" class="text-xs text-ink-400 mt-1">{{ App.t('Для этого типа счёта баланс — сумма долга, укажите его отрицательным числом, например −15000') }}</p>
+                <p v-if="isDebtType && Number(form.balance) > 0" class="text-xs text-money-neg mt-1">{{ App.t('Положительный баланс не будет учтён как долг в отчётах') }}</p>
               </div>
               <div v-else>
                 <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Баланс') }}</label>
@@ -97,6 +99,9 @@ App.AccountModal = {
     },
     noCurrencies() {
       return !this.isEditing && this.finance.state.currencies.filter((c) => !c.archived).length === 0
+    },
+    isDebtType() {
+      return this.form.type === App.AccountType.CREDIT_CARD || this.form.type === App.AccountType.DEBT
     },
   },
   watch: {

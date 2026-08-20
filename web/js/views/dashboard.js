@@ -37,8 +37,8 @@ App.DashboardView = {
           <p class="text-xl md:text-2xl font-semibold" :class="totalExpense ? 'text-money-neg' : 'text-ink-950'">{{ totalExpense ? '−' : '' }}{{ formatMoney(totalExpense, finance.state.baseCurrency) }}</p>
         </div>
         <div class="rounded-xl bg-white border border-ink-200 p-4">
-          <p class="text-xs font-medium text-ink-500 mb-1.5">{{ App.t('Норма сбережений') }}</p>
-          <p class="text-xl md:text-2xl font-semibold" :class="savingsRate >= 0 ? 'text-ink-950' : 'text-money-neg'">{{ savingsRate }}%</p>
+          <p class="text-xs font-medium text-ink-500 mb-1.5">{{ App.t('Долг') }}</p>
+          <p class="text-xl md:text-2xl font-semibold" :class="totalDebt ? 'text-money-neg' : 'text-ink-950'">{{ formatMoney(totalDebt, finance.state.baseCurrency) }}</p>
         </div>
       </div>
 
@@ -105,8 +105,12 @@ App.DashboardView = {
     totalIncome() {
       return this.monthIncome.reduce((s, t) => s + this.finance.amountInBase(t), 0)
     },
-    savingsRate() {
-      return this.totalIncome ? Math.round(((this.totalIncome - this.totalExpense) / this.totalIncome) * 100) : 0
+    totalDebt() {
+      const debtTypes = [App.AccountType.CREDIT_CARD, App.AccountType.DEBT]
+      return this.finance.activeAccounts
+        .filter((a) => debtTypes.includes(a.type))
+        // Only a negative balance is debt — an overpaid credit card (positive balance) isn't.
+        .reduce((sum, a) => sum + Math.max(0, -this.finance.toBase(a.balance, a.currency)), 0)
     },
     topCategories() {
       const sums = new Map()

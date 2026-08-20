@@ -188,6 +188,50 @@ func TestUseCase_Execute(t *testing.T) {
 			},
 			assertErr: func(t *testing.T, err error) { require.NoError(t, err) },
 		},
+		{
+			name: "negative opening balance is rejected for ordinary account types",
+			mock: func(*fakeAccountRepository, *fakeCurrencyRepository) Input {
+				return Input{Name: "Cash", Type: uint8(entity.AccountTypeCash), CurrencyCode: "RUB", Balance: -500}
+			},
+			assertResult: func(t *testing.T, got Output) { require.Equal(t, Output{}, got) },
+			assertErr: func(t *testing.T, err error) {
+				require.EqualError(t, err, "Opening balance can't be negative")
+			},
+		},
+		{
+			name: "negative opening balance is allowed for a credit card, representing money owed",
+			mock: func(accounts *fakeAccountRepository, currencies *fakeCurrencyRepository) Input {
+				currencies.existsFn = func(context.Context, string) (bool, error) { return true, nil }
+				accounts.createFn = func(_ context.Context, req port.AccountCreateRequest) (entity.Account, error) {
+					require.Equal(t, int64(-1500), req.Balance)
+
+					return entity.Account{ID: 1, Name: req.Name, Type: req.Type, CurrencyCode: req.CurrencyCode, Balance: req.Balance}, nil
+				}
+
+				return Input{Name: "Credit card", Type: uint8(entity.AccountTypeCreditCard), CurrencyCode: "RUB", Balance: -1500}
+			},
+			assertResult: func(t *testing.T, got Output) {
+				require.Equal(t, int64(-1500), got.Account.Balance)
+			},
+			assertErr: func(t *testing.T, err error) { require.NoError(t, err) },
+		},
+		{
+			name: "negative opening balance is allowed for a debt account, representing money owed",
+			mock: func(accounts *fakeAccountRepository, currencies *fakeCurrencyRepository) Input {
+				currencies.existsFn = func(context.Context, string) (bool, error) { return true, nil }
+				accounts.createFn = func(_ context.Context, req port.AccountCreateRequest) (entity.Account, error) {
+					require.Equal(t, int64(-2000), req.Balance)
+
+					return entity.Account{ID: 1, Name: req.Name, Type: req.Type, CurrencyCode: req.CurrencyCode, Balance: req.Balance}, nil
+				}
+
+				return Input{Name: "Debt", Type: uint8(entity.AccountTypeDebt), CurrencyCode: "RUB", Balance: -2000}
+			},
+			assertResult: func(t *testing.T, got Output) {
+				require.Equal(t, int64(-2000), got.Account.Balance)
+			},
+			assertErr: func(t *testing.T, err error) { require.NoError(t, err) },
+		},
 	}
 
 	for _, tt := range tests {

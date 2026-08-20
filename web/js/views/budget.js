@@ -32,8 +32,9 @@ App.BudgetView = {
       <ul class="divide-y divide-ink-100">
         <li v-for="c in budgetCategories" :key="c.id" class="flex items-center justify-between gap-3 px-4 md:px-5 py-3.5">
           <span class="flex items-center gap-2.5 min-w-0">
-            <span class="w-2.5 h-2.5 rounded-full shrink-0" :style="{ background: c.color }"></span>
-            <span class="text-sm text-ink-900 truncate">{{ App.t(c.name) }}</span>
+            <span class="w-2.5 h-2.5 rounded-full shrink-0" :class="{ 'opacity-40 grayscale': c.archived }" :style="{ background: c.color }"></span>
+            <span class="text-sm text-ink-900 truncate" :class="{ 'text-ink-400': c.archived }">{{ App.t(c.name) }}</span>
+            <span v-if="c.archived" class="shrink-0 text-[10px] font-medium uppercase tracking-wide text-ink-400 bg-ink-100 rounded px-1.5 py-0.5">{{ App.t('Деактивирована') }}</span>
           </span>
           <input type="number" min="0" step="100" placeholder="0"
             :value="budgetAmount(c.id) || ''"
@@ -53,7 +54,10 @@ App.BudgetView = {
   },
   computed: {
     budgetCategories() {
-      return this.finance.state.categories.filter((c) => c.type === App.CategoryType.EXPENSE && !c.archived)
+      // Archived categories stay listed here (unlike the transaction form's category picker) so a
+      // budget already set for one remains visible/editable after it's archived — only deleting the
+      // category removes it from the budget (see App.financeStore.deleteCategory).
+      return this.finance.state.categories.filter((c) => c.type === App.CategoryType.EXPENSE)
     },
     monthLabel() {
       return App.formatMonthYear(this.budgetMonth)
