@@ -60,3 +60,30 @@ func (c Currency) MarshalJSON() ([]byte, error) {
 		UpdatedAt: c.UpdatedAt,
 	})
 }
+
+// UnmarshalJSON is currencyJSON's inverse — used to read a Currency back out of a Backup file (see
+// entity.Backup).
+func (c *Currency) UnmarshalJSON(data []byte) error {
+	var j currencyJSON
+	if err := json.Unmarshal(data, &j); err != nil {
+		return err
+	}
+
+	status := CurrencyStatusActive
+	if j.Archived {
+		status = CurrencyStatusArchived
+	}
+
+	*c = Currency{
+		Code:      j.Code,
+		Symbol:    j.Symbol,
+		Name:      j.Name,
+		Rate:      j.Rate,
+		Default:   j.Default,
+		Status:    status,
+		CreatedAt: j.CreatedAt,
+		UpdatedAt: j.UpdatedAt,
+	}
+
+	return nil
+}

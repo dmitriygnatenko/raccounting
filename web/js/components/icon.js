@@ -30,6 +30,8 @@ const iconPaths = {
   target: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 4a6 6 0 1 0 0 12 6 6 0 0 0 0-12Zm0 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z',
   restore: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5',
   chevron: 'M9 6l6 6-6 6',
+  download: 'M12 3v12m0 0 4-4m-4 4-4-4M4 21h16',
+  upload: 'M12 21V9m0 0 4 4m-4-4-4 4M4 3h16',
 }
 
 App.AppIcon = {

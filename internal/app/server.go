@@ -42,6 +42,9 @@ import (
 	budgetList "raccounting/internal/domain/usecase/categorybudget/list"
 	budgetSet "raccounting/internal/domain/usecase/categorybudget/set"
 
+	dataExport "raccounting/internal/domain/usecase/data/export"
+	dataRestore "raccounting/internal/domain/usecase/data/restore"
+
 	settingsGet "raccounting/internal/domain/usecase/settings/get"
 	settingsUpdate "raccounting/internal/domain/usecase/settings/update"
 
@@ -114,6 +117,26 @@ func newServer(repos repositories, svcs services, cookieSecure bool) *httpAPI.Se
 			Update: tagUpdate.New(repos.Tags),
 			Delete: tagDelete.New(repos.Tags),
 			List:   tagList.New(repos.Tags),
+		},
+		Data: httpAPI.DataUseCases{
+			Export: dataExport.New(
+				repos.Users,
+				repos.Accounts,
+				repos.Categories,
+				repos.Currencies,
+				repos.Tags,
+				repos.Transactions,
+				repos.Budgets,
+			),
+			Restore: dataRestore.New(
+				repos.Users,
+				repos.Accounts,
+				repos.Categories,
+				repos.Currencies,
+				repos.Tags,
+				repos.Transactions,
+				repos.Budgets,
+			),
 		},
 		CookieSecure: cookieSecure,
 	}

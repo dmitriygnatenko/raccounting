@@ -2,6 +2,7 @@ package entity
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -105,4 +106,39 @@ func (t Transaction) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(j)
+}
+
+// UnmarshalJSON is transactionJSON's inverse — used to read a Transaction back out of a Backup file
+// (see entity.Backup).
+func (t *Transaction) UnmarshalJSON(data []byte) error {
+	var j transactionJSON
+	if err := json.Unmarshal(data, &j); err != nil {
+		return err
+	}
+
+	operationAt, err := time.Parse(DateLayout, j.Date)
+	if err != nil {
+		return fmt.Errorf("transaction %d: %w", j.ID, err)
+	}
+
+	*t = Transaction{
+		ID:                    j.ID,
+		CategoryID:            j.CategoryID,
+		Type:                  TransactionType(j.Type),
+		AccountID:             j.AccountID,
+		CurrencyCode:          j.Currency,
+		Amount:                j.Amount,
+		TransferTransactionID: j.TransferTransactionID,
+		TransferCurrencyCode:  j.TransferCurrency,
+		TransferAmount:        j.TransferAmount,
+		TransferRate:          j.TransferRate,
+		TransferAccountID:     j.TransferAccountID,
+		Memo:                  j.Memo,
+		OperationAt:           operationAt,
+		CreatedAt:             j.CreatedAt,
+		UpdatedAt:             j.UpdatedAt,
+		TagIDs:                j.TagIDs,
+	}
+
+	return nil
 }

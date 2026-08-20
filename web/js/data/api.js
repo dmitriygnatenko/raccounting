@@ -125,5 +125,26 @@ App.api = {
   async deleteTag(id) {
     return request('DELETE', `/api/tags/${id}`)
   },
+  async exportData() {
+    const res = await fetch('/api/data/export')
+
+    if (!res.ok) {
+      let message = 'Request failed'
+      try {
+        const data = await res.json()
+        message = data?.error || message
+      } catch {}
+      throw new Error(message)
+    }
+
+    const blob = await res.blob()
+    const disposition = res.headers.get('Content-Disposition') || ''
+    const match = disposition.match(/filename="?([^"]+)"?/)
+
+    return { blob, filename: match ? match[1] : 'raccounting-backup.json' }
+  },
+  async importData(backup) {
+    return request('POST', '/api/data/import', backup)
+  },
 }
 })();

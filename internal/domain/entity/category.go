@@ -72,3 +72,29 @@ func (c Category) MarshalJSON() ([]byte, error) {
 		UpdatedAt: c.UpdatedAt,
 	})
 }
+
+// UnmarshalJSON is categoryJSON's inverse — used to read a Category back out of a Backup file (see
+// entity.Backup).
+func (c *Category) UnmarshalJSON(data []byte) error {
+	var j categoryJSON
+	if err := json.Unmarshal(data, &j); err != nil {
+		return err
+	}
+
+	status := CategoryStatusActive
+	if j.Archived {
+		status = CategoryStatusArchived
+	}
+
+	*c = Category{
+		ID:        j.ID,
+		Name:      j.Name,
+		Color:     j.Color,
+		Type:      CategoryType(j.Type),
+		Status:    status,
+		CreatedAt: j.CreatedAt,
+		UpdatedAt: j.UpdatedAt,
+	}
+
+	return nil
+}

@@ -38,6 +38,9 @@ import (
 	categoryBudgetList "raccounting/internal/domain/usecase/categorybudget/list"
 	categoryBudgetSet "raccounting/internal/domain/usecase/categorybudget/set"
 
+	dataExport "raccounting/internal/domain/usecase/data/export"
+	dataRestore "raccounting/internal/domain/usecase/data/restore"
+
 	settingsGet "raccounting/internal/domain/usecase/settings/get"
 	settingsUpdate "raccounting/internal/domain/usecase/settings/update"
 
@@ -99,6 +102,12 @@ type CategoryBudgetUseCases struct {
 	List *categoryBudgetList.UseCase
 }
 
+// DataUseCases collects the use cases behind the /api/data routes (full backup export/import).
+type DataUseCases struct {
+	Export  *dataExport.UseCase
+	Restore *dataRestore.UseCase
+}
+
 // SettingsUseCases collects the use cases behind the /api/settings routes.
 type SettingsUseCases struct {
 	Get    *settingsGet.UseCase
@@ -125,6 +134,7 @@ type Server struct {
 	Budgets      CategoryBudgetUseCases
 	Settings     SettingsUseCases
 	Tags         TagUseCases
+	Data         DataUseCases
 
 	// CookieSecure sets the session cookie's Secure flag — true once the app is served over HTTPS.
 	CookieSecure bool
@@ -173,6 +183,9 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/tags", s.requireAuth(s.handleCreateTag))
 	mux.HandleFunc("PUT /api/tags/{id}", s.requireAuth(s.handleUpdateTag))
 	mux.HandleFunc("DELETE /api/tags/{id}", s.requireAuth(s.handleDeleteTag))
+
+	mux.HandleFunc("GET /api/data/export", s.requireAuth(s.handleExportData))
+	mux.HandleFunc("POST /api/data/import", s.requireAuth(s.handleImportData))
 }
 
 // handleHealth handles GET /api/health — a trivial liveness check.

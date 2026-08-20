@@ -42,3 +42,22 @@ func (t Tag) MarshalJSON() ([]byte, error) {
 		UpdatedAt: t.UpdatedAt,
 	})
 }
+
+// UnmarshalJSON is tagJSON's inverse — used to read a Tag back out of a Backup file (see
+// entity.Backup).
+func (t *Tag) UnmarshalJSON(data []byte) error {
+	var j tagJSON
+	if err := json.Unmarshal(data, &j); err != nil {
+		return err
+	}
+
+	*t = Tag{
+		ID:        j.ID,
+		Name:      j.Name,
+		Color:     j.Color,
+		CreatedAt: j.CreatedAt,
+		UpdatedAt: j.UpdatedAt,
+	}
+
+	return nil
+}
