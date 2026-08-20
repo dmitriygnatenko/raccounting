@@ -1,5 +1,7 @@
 package port
 
+//go:generate go tool mockgen -source=currency_repository.go -destination=mocks/currency_repository_mock.go -package=mocks
+
 import (
 	"context"
 
@@ -25,7 +27,7 @@ type CurrencyUpdateRequest struct {
 	Archived bool
 }
 
-// CurrencyRepository persists Currencies
+// CurrencyRepository persists Currencies.
 type CurrencyRepository interface {
 	List(ctx context.Context) ([]entity.Currency, error)
 	// Exists reports whether a currency with this code exists — used to validate an account's
