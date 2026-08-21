@@ -1,7 +1,14 @@
 window.App = window.App || {};
 
 ;(function () {
-const { reactive, computed } = Vue
+const { reactive, computed, watch } = Vue
+
+// currentMonthKey is 'YYYY-MM' for the current calendar month, as used for budgetMonth throughout
+// the app (see App.formatMonthYear and the Отчёты/Бюджет views).
+function currentMonthKey() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
 
 function createFinanceStore() {
   const state = reactive({
@@ -19,6 +26,9 @@ function createFinanceStore() {
     transactionsVersion: 0,
     loading: true,
     loaded: false,
+    // Categories over their current-month budget — drives the bell notification badge (see
+    // App.notificationsStore, which tracks which of these the user has already seen).
+    budgetAlerts: [],
   })
 
   async function refreshUsage() {
@@ -46,6 +56,7 @@ function createFinanceStore() {
     state.tags = tags
     state.loading = false
     state.loaded = true
+    await refreshBudgetAlerts()
   }
 
   // Used after a full data import (see App.api.importData): every id in state is now stale, so the
@@ -65,6 +76,33 @@ function createFinanceStore() {
     if (!state.categoryBudgets[categoryId]) state.categoryBudgets[categoryId] = {}
     if (amount > 0) state.categoryBudgets[categoryId][monthKey] = amount
     else delete state.categoryBudgets[categoryId][monthKey]
+    await refreshBudgetAlerts()
+  }
+
+  // refreshBudgetAlerts recomputes which categories are over their current-month budget. Called
+  // after initial load, after every transaction mutation (via the transactionsVersion watch below),
+  // and after a budget itself changes — anything that can push a category over or pull it back
+  // under.
+  async function refreshBudgetAlerts() {
+    const { dateFrom, dateTo } = App.periodToDateRange('month')
+    const transactions = await App.api.getAllTransactions({ dateFrom, dateTo, type: App.TransactionType.EXPENSE })
+
+    const spentByCategory = new Map()
+    for (const t of transactions) {
+      if (t.amount >= 0) continue
+      const key = t.categoryId ?? 'other-expense'
+      spentByCategory.set(key, (spentByCategory.get(key) ?? 0) + Math.abs(amountInBase(t)))
+    }
+
+    const monthKey = currentMonthKey()
+    const alerts = []
+    for (const [categoryId, spent] of spentByCategory) {
+      const budgeted = budgetFor(categoryId, monthKey)
+      if (budgeted > 0 && spent > budgeted) {
+        alerts.push({ categoryId, monthKey, category: App.getCategory(categoryId), spent, budgeted, overBy: spent - budgeted })
+      }
+    }
+    state.budgetAlerts = alerts
   }
 
   const activeAccounts = computed(() => state.accounts.filter((a) => !a.archived))
@@ -272,6 +310,11 @@ function createFinanceStore() {
     // bump transactionsVersion so views holding their own bounded window refetch and pick that up.
     state.transactionsVersion += 1
   }
+
+  // A transaction add/edit/delete can push a category over budget or pull it back under, so
+  // refresh alerts whenever transactionsVersion moves — the same signal every bounded transaction
+  // list in the app already watches for this reason.
+  watch(() => state.transactionsVersion, refreshBudgetAlerts)
 
   return {
     state,

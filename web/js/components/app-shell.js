@@ -41,9 +41,41 @@ App.AppShell = {
             <h1 class="text-lg md:text-xl font-semibold text-ink-950">{{ App.t(pageTitle) }}</h1>
           </div>
           <div class="flex items-center gap-2">
-            <button class="hidden sm:flex p-2 rounded-lg text-ink-500 hover:bg-ink-100 cursor-pointer" :aria-label="App.t('Уведомления')">
-              <app-icon name="bell" :size="20" />
-            </button>
+            <div class="relative hidden sm:block">
+              <button class="relative flex p-2 rounded-lg text-ink-500 hover:bg-ink-100 cursor-pointer" :aria-label="App.t('Уведомления')" @click="notifications.toggle()">
+                <app-icon name="bell" :size="20" />
+                <span v-if="hasUnseenAlerts" class="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                </span>
+              </button>
+              <Transition name="fade">
+                <div v-if="notifications.state.panelOpen" class="fixed inset-0 z-40" @click="notifications.close()"></div>
+              </Transition>
+              <Transition name="fade">
+                <div v-if="notifications.state.panelOpen" class="absolute right-0 top-11 z-50 w-80 rounded-xl bg-white border border-ink-200 shadow-lg py-1.5">
+                  <div class="px-3.5 py-2 text-sm font-semibold text-ink-950 border-b border-ink-200">{{ App.t('Уведомления') }}</div>
+                  <div v-if="!notifications.state.panelAlerts.length" class="px-3.5 py-6 text-center text-sm text-ink-400">
+                    {{ App.t('Новых уведомлений нет') }}
+                  </div>
+                  <ul v-else class="max-h-80 overflow-y-auto divide-y divide-ink-100">
+                    <li v-for="a in notifications.state.panelAlerts" :key="a.categoryId + ':' + a.monthKey" class="px-3.5 py-2.5">
+                      <div class="flex items-center gap-2 text-sm text-ink-900 font-medium">
+                        <span class="w-2 h-2 rounded-full shrink-0" :style="{ background: a.category?.color ?? '#94a3b8' }"></span>
+                        {{ App.t('Бюджет превышен: {name}', { name: App.t(a.category?.name ?? 'Без категории') }) }}
+                      </div>
+                      <p class="text-xs text-ink-500 mt-0.5">
+                        {{ App.t('Потрачено {spent} из {budgeted} — превышение {over}', {
+                          spent: App.formatMoney(a.spent, finance.state.baseCurrency),
+                          budgeted: App.formatMoney(a.budgeted, finance.state.baseCurrency),
+                          over: App.formatMoney(a.overBy, finance.state.baseCurrency),
+                        }) }}
+                      </p>
+                    </li>
+                  </ul>
+                </div>
+              </Transition>
+            </div>
             <div class="relative">
               <button class="w-9 h-9 rounded-full bg-ink-200 flex items-center justify-center text-sm font-medium text-ink-700 cursor-pointer hover:bg-ink-300 transition-colors"
                 :aria-label="App.t('Профиль')" @click="profileMenuOpen = !profileMenuOpen">
@@ -119,6 +151,8 @@ App.AppShell = {
     return {
       App,
       ui: App.uiStore,
+      finance: App.financeStore,
+      notifications: App.notificationsStore,
       router: App.router,
       authStore: App.authStore,
       mobileMenuOpen: false,
@@ -145,6 +179,9 @@ App.AppShell = {
     },
     initials() {
       return App.authStore.initials(this.authStore.state.user?.username) || '?'
+    },
+    hasUnseenAlerts() {
+      return this.notifications.unseenAlerts.length > 0
     },
   },
   methods: {
