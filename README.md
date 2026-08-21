@@ -72,6 +72,17 @@ make docker-down     # stop MariaDB
 
 Run `make help` for the full list of targets.
 
+### Docker image
+
+```bash
+make docker-build                     # builds raccounting:latest
+docker run -p 8080:8080 --env-file .env raccounting:latest
+```
+
+The image is a multi-stage build (`Dockerfile`): a `golang:1.26-alpine` stage compiles a static,
+`CGO_ENABLED=0` binary, which is then copied into a minimal `alpine` runtime image alongside
+`ca-certificates`. Override the image name/tag with `IMAGE_NAME` / `IMAGE_TAG`.
+
 ## Architecture
 
 The backend follows a hexagonal layout under `internal/`:
