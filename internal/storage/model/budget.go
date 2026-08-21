@@ -27,3 +27,11 @@ func (m Budget) ToEntity() entity.Budget {
 		UpdatedAt:  m.UpdatedAt,
 	}
 }
+
+// BudgetSetRequest bundles the parameters Storage.SetCategoryBudget needs. Set upserts the
+// (categoryId, monthKey) row when Amount > 0, and deletes it otherwise.
+type BudgetSetRequest struct {
+	CategoryID uint64
+	MonthKey   string
+	Amount     int64
+}

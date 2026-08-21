@@ -56,8 +56,31 @@ App.api = {
   getCategories() {
     return request('GET', '/api/categories')
   },
-  getTransactions() {
-    return request('GET', '/api/transactions')
+  getTransactions(params = {}) {
+    const query = new URLSearchParams()
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined && value !== null && value !== '') query.set(key, value)
+    }
+    const qs = query.toString()
+    return request('GET', '/api/transactions' + (qs ? `?${qs}` : ''))
+  },
+  // getAllTransactions loops getTransactions' pages (a large pageSize covers all but pathological
+  // cases in one round trip) so callers that need every row in a bounded date range — Reports,
+  // Dashboard — don't have to juggle pagination themselves.
+  async getAllTransactions(params = {}) {
+    const pageSize = 1000
+    let page = 1
+    let all = []
+    for (;;) {
+      const res = await App.api.getTransactions({ ...params, page, pageSize })
+      all = all.concat(res.transactions)
+      if (page >= res.totalPages) break
+      page += 1
+    }
+    return all
+  },
+  getTransactionsUsage() {
+    return request('GET', '/api/transactions/usage')
   },
   getCurrencies() {
     return request('GET', '/api/currencies')

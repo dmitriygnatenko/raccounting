@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 
-	"raccounting/internal/port"
+	"raccounting/internal/domain/entity"
 	"raccounting/internal/storage/model"
 )
 
@@ -110,6 +111,263 @@ func (s *Storage) ListTransactions(ctx context.Context) ([]model.Transaction, er
 	return transactions, nil
 }
 
+// transactionColumnsQualified is transactionColumns with every column qualified by the `t` alias —
+// used by ListTransactionsFiltered, whose query joins in `categories c` to support searching by
+// category name.
+const transactionColumnsQualified = `t.id, t.category_id, t.type, t.account_id, t.currency, t.amount,
+	t.transfer_transaction_id, t.transfer_currency, t.transfer_amount, t.transfer_rate, t.transfer_account_id,
+	t.memo, t.operation_at, t.created_at, t.updated_at`
+
+// buildTransactionListWhere builds the SQL WHERE clause and its bound args for filter, shared by the
+// count, per-currency sum, and paginated queries in ListTransactionsFiltered. Assumes the transactions
+// table is aliased `t`, and — only when filter.Search is set — that a LEFT JOIN to `categories c` is
+// also in scope.
+func buildTransactionListWhere(filter model.TransactionListFilter) (string, []any) {
+	var (
+		conditions []string
+		args       []any
+	)
+
+	if filter.DateFrom != nil {
+		conditions = append(conditions, "t.operation_at >= ?")
+		args = append(args, filter.DateFrom.Format(entity.DateLayout))
+	}
+
+	if filter.DateTo != nil {
+		conditions = append(conditions, "t.operation_at <= ?")
+		args = append(args, filter.DateTo.Format(entity.DateLayout))
+	}
+
+	if filter.AccountID != nil {
+		conditions = append(conditions, "t.account_id = ?")
+		args = append(args, *filter.AccountID)
+	}
+
+	if filter.CategoryID != nil {
+		conditions = append(conditions, "t.category_id = ?")
+		args = append(args, *filter.CategoryID)
+	}
+
+	if filter.Type != nil {
+		conditions = append(conditions, "t.type = ?")
+		args = append(args, uint8(*filter.Type))
+	}
+
+	if filter.TagID != nil {
+		conditions = append(conditions,
+			"EXISTS (SELECT 1 FROM transaction_tags tt WHERE tt.transaction_id = t.id AND tt.tag_id = ?)",
+		)
+		args = append(args, *filter.TagID)
+	}
+
+	if filter.Search != "" {
+		like := "%" + filter.Search + "%"
+		conditions = append(conditions, "(t.memo LIKE ? OR c.name LIKE ?)")
+		args = append(args, like, like)
+	}
+
+	if len(conditions) == 0 {
+		return "", args
+	}
+
+	return " WHERE " + strings.Join(conditions, " AND "), args
+}
+
+// ListTransactionsFiltered returns one page of transactions matching filter, most recent operation
+// first, alongside the total count and per-currency sums across every matching row (not just the
+// page) — SumsByCurrency lets a caller show an accurate total for the whole filtered set without
+// loading it all.
+func (s *Storage) ListTransactionsFiltered(
+	ctx context.Context, filter model.TransactionListFilter,
+) (model.ListTransactionsFilteredResult, error) {
+	from := "transactions t"
+	if filter.Search != "" {
+		from += " LEFT JOIN categories c ON c.id = t.category_id"
+	}
+
+	where, args := buildTransactionListWhere(filter)
+
+	var total int
+	if err := s.DB.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM `+from+where, args...,
+	).Scan(&total); err != nil {
+		return model.ListTransactionsFilteredResult{}, err
+	}
+
+	sums, err := s.transactionSumsByCurrency(ctx, from, where, args)
+	if err != nil {
+		return model.ListTransactionsFilteredResult{}, err
+	}
+
+	page, pageSize := filter.Page, filter.PageSize
+	if page < 1 {
+		page = 1
+	}
+
+	if pageSize < 1 {
+		pageSize = 100
+	}
+
+	pageArgs := append(append([]any{}, args...), pageSize, (page-1)*pageSize)
+
+	rows, err := s.DB.QueryContext(ctx,
+		`SELECT `+transactionColumnsQualified+` FROM `+from+where+
+			` ORDER BY t.operation_at DESC, t.id DESC LIMIT ? OFFSET ?`,
+		pageArgs...,
+	)
+	if err != nil {
+		return model.ListTransactionsFilteredResult{}, err
+	}
+	defer rows.Close()
+
+	var transactions []model.Transaction
+
+	for rows.Next() {
+		m, err := scanTransaction(rows)
+		if err != nil {
+			return model.ListTransactionsFilteredResult{}, err
+		}
+
+		transactions = append(transactions, m)
+	}
+
+	if err = rows.Err(); err != nil {
+		return model.ListTransactionsFilteredResult{}, err
+	}
+
+	if len(transactions) > 0 {
+		ids := make([]uint64, len(transactions))
+		for i, t := range transactions {
+			ids[i] = t.ID
+		}
+
+		tagsByTransaction, err := s.listTransactionTagsFor(ctx, ids)
+		if err != nil {
+			return model.ListTransactionsFilteredResult{}, err
+		}
+
+		for i := range transactions {
+			transactions[i].TagIDs = tagsByTransaction[transactions[i].ID]
+		}
+	}
+
+	return model.ListTransactionsFilteredResult{
+		Transactions:   transactions,
+		TotalCount:     total,
+		SumsByCurrency: sums,
+	}, nil
+}
+
+// transactionSumsByCurrency runs the SUM(amount)...GROUP BY currency query behind
+// ListTransactionsFiltered's SumsByCurrency, against the same FROM/WHERE/args its caller used for
+// the count.
+func (s *Storage) transactionSumsByCurrency(
+	ctx context.Context, from, where string, args []any,
+) (map[string]int64, error) {
+	rows, err := s.DB.QueryContext(ctx,
+		`SELECT t.currency, SUM(t.amount) FROM `+from+where+` GROUP BY t.currency`, args...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	sums := make(map[string]int64)
+
+	for rows.Next() {
+		var (
+			currency string
+			sum      int64
+		)
+
+		if err = rows.Scan(&currency, &sum); err != nil {
+			return nil, err
+		}
+
+		sums[currency] = sum
+	}
+
+	return sums, rows.Err()
+}
+
+// listTransactionTagsFor returns tag ids for only the given transaction ids, keyed by transaction id
+// — used by ListTransactionsFiltered so a page's tag lookup stays proportional to the page size, not
+// the whole table (unlike listTransactionTags, which ListTransactions uses for its all-rows read).
+func (s *Storage) listTransactionTagsFor(ctx context.Context, ids []uint64) (map[uint64][]uint64, error) {
+	placeholders := make([]string, len(ids))
+	args := make([]any, len(ids))
+
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+
+	rows, err := s.DB.QueryContext(ctx,
+		`SELECT transaction_id, tag_id FROM transaction_tags WHERE transaction_id IN (`+
+			strings.Join(placeholders, ",")+`)`,
+		args...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	byTransaction := make(map[uint64][]uint64)
+
+	for rows.Next() {
+		var transactionID, tagID uint64
+
+		if err = rows.Scan(&transactionID, &tagID); err != nil {
+			return nil, err
+		}
+
+		byTransaction[transactionID] = append(byTransaction[transactionID], tagID)
+	}
+
+	return byTransaction, rows.Err()
+}
+
+// TransactionUsage returns the account/category ids referenced by at least one transaction — cheap,
+// distinct-value queries bounded by account/category count rather than transaction count.
+func (s *Storage) TransactionUsage(ctx context.Context) (model.TransactionUsage, error) {
+	accountIDs, err := s.distinctTransactionUint64(ctx, `SELECT DISTINCT account_id FROM transactions`)
+	if err != nil {
+		return model.TransactionUsage{}, err
+	}
+
+	categoryIDs, err := s.distinctTransactionUint64(
+		ctx, `SELECT DISTINCT category_id FROM transactions WHERE category_id IS NOT NULL`,
+	)
+	if err != nil {
+		return model.TransactionUsage{}, err
+	}
+
+	return model.TransactionUsage{AccountIDs: accountIDs, CategoryIDs: categoryIDs}, nil
+}
+
+// distinctTransactionUint64 runs a single-column query returning distinct uint64 ids.
+func (s *Storage) distinctTransactionUint64(ctx context.Context, query string) ([]uint64, error) {
+	rows, err := s.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []uint64
+
+	for rows.Next() {
+		var id uint64
+
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+
+		ids = append(ids, id)
+	}
+
+	return ids, rows.Err()
+}
+
 // FindTransactionByID returns a transaction by id. sql.ErrNoRows if it doesn't exist.
 func (s *Storage) FindTransactionByID(ctx context.Context, id uint64) (model.Transaction, error) {
 	row := s.DB.QueryRowContext(ctx, `SELECT `+transactionColumns+` FROM transactions WHERE id = ?`, id)
@@ -195,7 +453,7 @@ func setTransactionTags(ctx context.Context, tx *sql.Tx, transactionID uint64, t
 // CreateTransactionWithBalance inserts a transaction row and adjusts its account's balance,
 // atomically, in one DB transaction.
 func (s *Storage) CreateTransactionWithBalance(
-	ctx context.Context, req port.TransactionCreateRequest,
+	ctx context.Context, req model.TransactionCreateRequest,
 ) (model.Transaction, error) {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -249,7 +507,7 @@ func (s *Storage) CreateTransactionWithBalance(
 // — even across an account change — atomically, in one DB transaction. found is false if no
 // transaction with this id exists.
 func (s *Storage) UpdateTransactionWithBalance(
-	ctx context.Context, req port.TransactionUpdateRequest,
+	ctx context.Context, req model.TransactionUpdateRequest,
 ) (model.Transaction, bool, error) {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {

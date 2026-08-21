@@ -4,6 +4,9 @@ App.LoginView = {
   template: `
     <div class="min-h-screen flex items-center justify-center bg-ink-50 px-4">
       <div class="w-full max-w-sm">
+        <p class="text-center mb-4">
+          <a href="https://raccounting.ru" target="_blank" rel="noopener" class="text-xl font-semibold text-ink-950 hover:text-brand-600 transition-colors">Raccounting</a>
+        </p>
         <div class="rounded-xl bg-white border border-ink-200 shadow-sm p-5 md:p-6">
           <h1 class="text-lg font-semibold text-ink-950 mb-1">{{ App.t('Вход в аккаунт') }}</h1>
           <p class="text-sm text-ink-400 mb-5">{{ App.t('Введите имя пользователя и пароль, чтобы продолжить') }}</p>

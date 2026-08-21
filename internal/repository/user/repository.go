@@ -23,26 +23,19 @@ import (
 type Storage interface {
 	// FindUserByUsername returns sql.ErrNoRows when no user has this (already-normalized) username.
 	FindUserByUsername(ctx context.Context, username string) (model.User, error)
-
 	// FindUserByID returns sql.ErrNoRows when no user has this id.
 	FindUserByID(ctx context.Context, id uint64) (model.User, error)
-
 	// CreateUser inserts a user row and returns its new id. A taken username comes back wrapped in
 	// storageError.UniqueViolationError.
 	CreateUser(ctx context.Context, username, passwordHash string) (id uint64, err error)
-
 	// UpdateUsername renames a user. A taken username comes back wrapped in
 	// storageError.UniqueViolationError.
 	UpdateUsername(ctx context.Context, id uint64, username string) error
-
 	UpdateUserPasswordHash(ctx context.Context, id uint64, hash string) error
-
 	// GetUserSettings returns userID's settings JSON blob, zero-valued if the column is still NULL.
 	GetUserSettings(ctx context.Context, id uint64) (model.UserSettings, error)
-
 	// UpdateUserSettings overwrites userID's settings JSON blob.
 	UpdateUserSettings(ctx context.Context, id uint64, settings model.UserSettings) error
-
 	CountUsers(ctx context.Context) (int, error)
 }
 

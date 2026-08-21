@@ -11,7 +11,6 @@ package mocks
 
 import (
 	context "context"
-	port "raccounting/internal/port"
 	model "raccounting/internal/storage/model"
 	reflect "reflect"
 
@@ -43,7 +42,7 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 }
 
 // CreateAccount mocks base method.
-func (m *MockStorage) CreateAccount(ctx context.Context, req port.AccountCreateRequest) (uint64, error) {
+func (m *MockStorage) CreateAccount(ctx context.Context, req model.AccountCreateRequest) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateAccount", ctx, req)
 	ret0, _ := ret[0].(uint64)
@@ -103,7 +102,7 @@ func (mr *MockStorageMockRecorder) ListAccounts(ctx any) *gomock.Call {
 }
 
 // UpdateAccount mocks base method.
-func (m *MockStorage) UpdateAccount(ctx context.Context, req port.AccountUpdateRequest) (model.Account, bool, error) {
+func (m *MockStorage) UpdateAccount(ctx context.Context, req model.AccountUpdateRequest) (model.Account, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateAccount", ctx, req)
 	ret0, _ := ret[0].(model.Account)

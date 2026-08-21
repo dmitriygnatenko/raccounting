@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 
-	"raccounting/internal/port"
 	"raccounting/internal/storage/model"
 )
 
@@ -33,7 +32,7 @@ func (s *Storage) ListCategoryBudgets(ctx context.Context) ([]model.Budget, erro
 
 // SetCategoryBudget upserts the (categoryId, monthKey) row when Amount > 0, and deletes it
 // otherwise.
-func (s *Storage) SetCategoryBudget(ctx context.Context, req port.BudgetSetRequest) error {
+func (s *Storage) SetCategoryBudget(ctx context.Context, req model.BudgetSetRequest) error {
 	if req.Amount > 0 {
 		_, err := s.DB.ExecContext(ctx,
 			`INSERT INTO budgets (category_id, month_key, amount) VALUES ($1, $2, $3)

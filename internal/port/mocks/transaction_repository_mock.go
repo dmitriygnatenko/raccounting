@@ -131,6 +131,21 @@ func (mr *MockTransactionRepositoryMockRecorder) List(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockTransactionRepository)(nil).List), ctx)
 }
 
+// ListFiltered mocks base method.
+func (m *MockTransactionRepository) ListFiltered(ctx context.Context, filter port.TransactionListFilter) (port.TransactionListResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListFiltered", ctx, filter)
+	ret0, _ := ret[0].(port.TransactionListResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListFiltered indicates an expected call of ListFiltered.
+func (mr *MockTransactionRepositoryMockRecorder) ListFiltered(ctx, filter any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListFiltered", reflect.TypeOf((*MockTransactionRepository)(nil).ListFiltered), ctx, filter)
+}
+
 // Update mocks base method.
 func (m *MockTransactionRepository) Update(ctx context.Context, req port.TransactionUpdateRequest) (entity.Transaction, error) {
 	m.ctrl.T.Helper()
@@ -144,4 +159,19 @@ func (m *MockTransactionRepository) Update(ctx context.Context, req port.Transac
 func (mr *MockTransactionRepositoryMockRecorder) Update(ctx, req any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockTransactionRepository)(nil).Update), ctx, req)
+}
+
+// Usage mocks base method.
+func (m *MockTransactionRepository) Usage(ctx context.Context) (port.TransactionUsage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Usage", ctx)
+	ret0, _ := ret[0].(port.TransactionUsage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Usage indicates an expected call of Usage.
+func (mr *MockTransactionRepositoryMockRecorder) Usage(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Usage", reflect.TypeOf((*MockTransactionRepository)(nil).Usage), ctx)
 }

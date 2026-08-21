@@ -17,23 +17,11 @@ import (
 // Storage is the slice of the mysql adapter this repository uses — the sessions table and nothing
 // else.
 type Storage interface {
-	CreateSession(
-		ctx context.Context,
-		session model.Session,
-	) error
+	CreateSession(ctx context.Context, session model.Session) error
 	// FindSessionByToken returns sql.ErrNoRows when no session has this token.
-	FindSessionByToken(
-		ctx context.Context,
-		token string,
-	) (model.Session, error)
-	DeleteSession(
-		ctx context.Context,
-		token string,
-	) error
-	DeleteExpiredSessions(
-		ctx context.Context,
-		now time.Time,
-	) (int64, error)
+	FindSessionByToken(ctx context.Context, token string) (model.Session, error)
+	DeleteSession(ctx context.Context, token string) error
+	DeleteExpiredSessions(ctx context.Context, now time.Time) (int64, error)
 }
 
 // Repository implements port.SessionRepository.

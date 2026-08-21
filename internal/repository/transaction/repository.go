@@ -23,6 +23,15 @@ import (
 // balance side effect on accounts.
 type Storage interface {
 	ListTransactions(ctx context.Context) ([]model.Transaction, error)
+	// ListTransactionsFiltered returns one page of transactions matching filter, most recent
+	// operation first, alongside the total count and per-currency sums across every matching row
+	// (not just the page).
+	ListTransactionsFiltered(
+		ctx context.Context,
+		filter model.TransactionListFilter,
+	) (model.ListTransactionsFilteredResult, error)
+	// TransactionUsage returns the account/category ids referenced by at least one transaction.
+	TransactionUsage(ctx context.Context) (model.TransactionUsage, error)
 	// FindTransactionByID returns sql.ErrNoRows when no transaction with this id exists.
 	FindTransactionByID(ctx context.Context, id uint64) (model.Transaction, error)
 	// CreateTransactionWithBalance inserts a transaction row and adjusts its account's balance,
@@ -30,7 +39,7 @@ type Storage interface {
 	// storageError.InsufficientBalanceError.
 	CreateTransactionWithBalance(
 		ctx context.Context,
-		req port.TransactionCreateRequest,
+		req model.TransactionCreateRequest,
 	) (model.Transaction, error)
 	// UpdateTransactionWithBalance reverses the transaction's old balance effect and applies the new
 	// one — even across an account change — atomically, in one DB transaction. found is false if no
@@ -38,7 +47,7 @@ type Storage interface {
 	// storageError.InsufficientBalanceError.
 	UpdateTransactionWithBalance(
 		ctx context.Context,
-		req port.TransactionUpdateRequest,
+		req model.TransactionUpdateRequest,
 	) (row model.Transaction, found bool, err error)
 	// DeleteTransactionWithBalance removes a transaction row and reverses its balance effect,
 	// atomically, in one DB transaction. found is false if no transaction with this id existed. An
@@ -49,8 +58,8 @@ type Storage interface {
 	// storageError.InsufficientBalanceError.
 	CreateTransferWithBalance(
 		ctx context.Context,
-		req port.TransferCreateRequest,
-	) (legFrom, legTo model.Transaction, err error)
+		req model.TransferCreateRequest,
+	) (model.CreateTransferResult, error)
 	// DeleteTransferWithBalance removes both legs of the transfer that id belongs to and reverses
 	// their balance effects, atomically, in one DB transaction. found is false if no transaction
 	// with this id existed. An overdraw on either leg comes back wrapped in
@@ -83,6 +92,50 @@ func (r *Repository) List(ctx context.Context) ([]entity.Transaction, error) {
 	return transactions, nil
 }
 
+// ListFiltered returns one page of transactions matching filter.
+func (r *Repository) ListFiltered(
+	ctx context.Context, filter port.TransactionListFilter,
+) (port.TransactionListResult, error) {
+	res, err := r.storage.ListTransactionsFiltered(ctx, model.TransactionListFilter{
+		DateFrom:   filter.DateFrom,
+		DateTo:     filter.DateTo,
+		AccountID:  filter.AccountID,
+		CategoryID: filter.CategoryID,
+		TagID:      filter.TagID,
+		Type:       filter.Type,
+		Search:     filter.Search,
+		Page:       filter.Page,
+		PageSize:   filter.PageSize,
+	})
+	if err != nil {
+		return port.TransactionListResult{}, err
+	}
+
+	transactions := make([]entity.Transaction, len(res.Transactions))
+	for i, row := range res.Transactions {
+		transactions[i] = row.ToEntity()
+	}
+
+	return port.TransactionListResult{
+		Transactions:   transactions,
+		TotalCount:     res.TotalCount,
+		SumsByCurrency: res.SumsByCurrency,
+	}, nil
+}
+
+// Usage returns the account/category ids referenced by at least one transaction.
+func (r *Repository) Usage(ctx context.Context) (port.TransactionUsage, error) {
+	res, err := r.storage.TransactionUsage(ctx)
+	if err != nil {
+		return port.TransactionUsage{}, err
+	}
+
+	return port.TransactionUsage{
+		AccountIDs:  res.AccountIDs,
+		CategoryIDs: res.CategoryIDs,
+	}, nil
+}
+
 // FindByID looks up a transaction by id. An unknown id is reported as a message-less
 // *domainerror.NotFoundError — the use case supplies the message.
 func (r *Repository) FindByID(ctx context.Context, id uint64) (entity.Transaction, error) {
@@ -103,7 +156,16 @@ func (r *Repository) FindByID(ctx context.Context, id uint64) (entity.Transactio
 func (r *Repository) Create(
 	ctx context.Context, req port.TransactionCreateRequest,
 ) (entity.Transaction, error) {
-	row, err := r.storage.CreateTransactionWithBalance(ctx, req)
+	row, err := r.storage.CreateTransactionWithBalance(ctx, model.TransactionCreateRequest{
+		AccountID:    req.AccountID,
+		CategoryID:   req.CategoryID,
+		Type:         req.Type,
+		CurrencyCode: req.CurrencyCode,
+		Amount:       req.Amount,
+		Memo:         req.Memo,
+		OperationAt:  req.OperationAt,
+		TagIDs:       req.TagIDs,
+	})
 	if err != nil {
 		if errors.Is(err, storageError.InsufficientBalanceError) {
 			return entity.Transaction{}, &domainerror.ConflictError{}
@@ -122,7 +184,17 @@ func (r *Repository) Create(
 func (r *Repository) Update(
 	ctx context.Context, req port.TransactionUpdateRequest,
 ) (entity.Transaction, error) {
-	row, found, err := r.storage.UpdateTransactionWithBalance(ctx, req)
+	row, found, err := r.storage.UpdateTransactionWithBalance(ctx, model.TransactionUpdateRequest{
+		ID:           req.ID,
+		AccountID:    req.AccountID,
+		CategoryID:   req.CategoryID,
+		Type:         req.Type,
+		CurrencyCode: req.CurrencyCode,
+		Amount:       req.Amount,
+		Memo:         req.Memo,
+		OperationAt:  req.OperationAt,
+		TagIDs:       req.TagIDs,
+	})
 	if err != nil {
 		if errors.Is(err, storageError.InsufficientBalanceError) {
 			return entity.Transaction{}, &domainerror.ConflictError{}
@@ -164,7 +236,17 @@ func (r *Repository) Delete(ctx context.Context, id uint64) error {
 func (r *Repository) CreateTransfer(
 	ctx context.Context, req port.TransferCreateRequest,
 ) (port.TransferResult, error) {
-	legFrom, legTo, err := r.storage.CreateTransferWithBalance(ctx, req)
+	res, err := r.storage.CreateTransferWithBalance(ctx, model.TransferCreateRequest{
+		FromAccountID:    req.FromAccountID,
+		FromCurrencyCode: req.FromCurrencyCode,
+		ToAccountID:      req.ToAccountID,
+		ToCurrencyCode:   req.ToCurrencyCode,
+		Amount:           req.Amount,
+		CreditAmount:     req.CreditAmount,
+		Rate:             req.Rate,
+		OperationAt:      req.OperationAt,
+		Memo:             req.Memo,
+	})
 	if err != nil {
 		if errors.Is(err, storageError.InsufficientBalanceError) {
 			return port.TransferResult{}, &domainerror.ConflictError{}
@@ -174,8 +256,8 @@ func (r *Repository) CreateTransfer(
 	}
 
 	return port.TransferResult{
-		LegFrom: legFrom.ToEntity(),
-		LegTo:   legTo.ToEntity(),
+		LegFrom: res.LegFrom.ToEntity(),
+		LegTo:   res.LegTo.ToEntity(),
 	}, nil
 }
 

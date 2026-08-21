@@ -108,6 +108,7 @@ func TestRepository_Set(t *testing.T) {
 		MonthKey:   fakeMonthKey(),
 		Amount:     fakeAmount(),
 	}
+	storageReq := model.BudgetSetRequest{CategoryID: req.CategoryID, MonthKey: req.MonthKey, Amount: req.Amount}
 
 	tests := []struct {
 		name      string
@@ -117,14 +118,14 @@ func TestRepository_Set(t *testing.T) {
 		{
 			name: "delegates to storage",
 			mock: func(m *mocks.MockStorage) {
-				m.EXPECT().SetCategoryBudget(context.Background(), req).Return(nil)
+				m.EXPECT().SetCategoryBudget(context.Background(), storageReq).Return(nil)
 			},
 			assertErr: func(t *testing.T, err error) { require.NoError(t, err) },
 		},
 		{
 			name: "a storage error is propagated",
 			mock: func(m *mocks.MockStorage) {
-				m.EXPECT().SetCategoryBudget(context.Background(), req).Return(errStub)
+				m.EXPECT().SetCategoryBudget(context.Background(), storageReq).Return(errStub)
 			},
 			assertErr: func(t *testing.T, err error) { require.ErrorIs(t, err, errStub) },
 		},

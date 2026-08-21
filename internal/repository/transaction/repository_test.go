@@ -108,6 +108,114 @@ func TestRepository_List(t *testing.T) {
 	}
 }
 
+// TestRepository_ListFiltered covers the row -> entity conversion, total count, and per-currency
+// sums, plus plain error propagation.
+func TestRepository_ListFiltered(t *testing.T) {
+	t.Parallel()
+
+	accountID := fakeID()
+	filter := port.TransactionListFilter{AccountID: &accountID, Page: 2, PageSize: 50}
+	storageFilter := model.TransactionListFilter{AccountID: &accountID, Page: 2, PageSize: 50}
+
+	tests := []struct {
+		name         string
+		mock         func(m *mocks.MockStorage) port.TransactionListResult
+		assertResult func(t *testing.T, want, got port.TransactionListResult)
+		assertErr    func(t *testing.T, err error)
+	}{
+		{
+			name: "converts every row and passes through the count/sums",
+			mock: func(m *mocks.MockStorage) port.TransactionListResult {
+				rows := []model.Transaction{fakeTransactionModel(), fakeTransactionModel()}
+				sums := map[string]int64{"RUB": 12345}
+				m.EXPECT().ListTransactionsFiltered(context.Background(), storageFilter).
+					Return(model.ListTransactionsFilteredResult{Transactions: rows, TotalCount: 137, SumsByCurrency: sums}, nil)
+
+				want := make([]entity.Transaction, len(rows))
+				for i, row := range rows {
+					want[i] = row.ToEntity()
+				}
+
+				return port.TransactionListResult{Transactions: want, TotalCount: 137, SumsByCurrency: sums}
+			},
+			assertResult: func(t *testing.T, want, got port.TransactionListResult) { require.Equal(t, want, got) },
+			assertErr:    func(t *testing.T, err error) { require.NoError(t, err) },
+		},
+		{
+			name: "a storage error is propagated",
+			mock: func(m *mocks.MockStorage) port.TransactionListResult {
+				m.EXPECT().ListTransactionsFiltered(context.Background(), storageFilter).
+					Return(model.ListTransactionsFilteredResult{}, errStub)
+
+				return port.TransactionListResult{}
+			},
+			assertResult: func(t *testing.T, want, got port.TransactionListResult) {},
+			assertErr:    func(t *testing.T, err error) { require.ErrorIs(t, err, errStub) },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			r, m := newRepo(t)
+			want := tt.mock(m)
+
+			got, err := r.ListFiltered(context.Background(), filter)
+			tt.assertErr(t, err)
+			tt.assertResult(t, want, got)
+		})
+	}
+}
+
+// TestRepository_Usage covers the pass-through to storage and plain error propagation.
+func TestRepository_Usage(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		mock         func(m *mocks.MockStorage) port.TransactionUsage
+		assertResult func(t *testing.T, want, got port.TransactionUsage)
+		assertErr    func(t *testing.T, err error)
+	}{
+		{
+			name: "returns the used ids",
+			mock: func(m *mocks.MockStorage) port.TransactionUsage {
+				accountIDs, categoryIDs := []uint64{fakeID()}, []uint64{fakeID()}
+				m.EXPECT().TransactionUsage(context.Background()).
+					Return(model.TransactionUsage{AccountIDs: accountIDs, CategoryIDs: categoryIDs}, nil)
+
+				return port.TransactionUsage{AccountIDs: accountIDs, CategoryIDs: categoryIDs}
+			},
+			assertResult: func(t *testing.T, want, got port.TransactionUsage) { require.Equal(t, want, got) },
+			assertErr:    func(t *testing.T, err error) { require.NoError(t, err) },
+		},
+		{
+			name: "a storage error is propagated",
+			mock: func(m *mocks.MockStorage) port.TransactionUsage {
+				m.EXPECT().TransactionUsage(context.Background()).Return(model.TransactionUsage{}, errStub)
+
+				return port.TransactionUsage{}
+			},
+			assertResult: func(t *testing.T, want, got port.TransactionUsage) {},
+			assertErr:    func(t *testing.T, err error) { require.ErrorIs(t, err, errStub) },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			r, m := newRepo(t)
+			want := tt.mock(m)
+
+			got, err := r.Usage(context.Background())
+			tt.assertErr(t, err)
+			tt.assertResult(t, want, got)
+		})
+	}
+}
+
 // TestRepository_FindByID covers the lookup, including the id -> NotFoundError translation.
 func TestRepository_FindByID(t *testing.T) {
 	t.Parallel()
@@ -184,6 +292,16 @@ func TestRepository_Create(t *testing.T) {
 		Memo:         fakeMemo(),
 		OperationAt:  fakeOperationAt(),
 	}
+	storageReq := model.TransactionCreateRequest{
+		AccountID:    req.AccountID,
+		CategoryID:   req.CategoryID,
+		Type:         req.Type,
+		CurrencyCode: req.CurrencyCode,
+		Amount:       req.Amount,
+		Memo:         req.Memo,
+		OperationAt:  req.OperationAt,
+		TagIDs:       req.TagIDs,
+	}
 
 	tests := []struct {
 		name         string
@@ -195,7 +313,7 @@ func TestRepository_Create(t *testing.T) {
 			name: "stores the transaction and returns it",
 			mock: func(m *mocks.MockStorage) entity.Transaction {
 				row := fakeTransactionModel()
-				m.EXPECT().CreateTransactionWithBalance(context.Background(), req).Return(row, nil)
+				m.EXPECT().CreateTransactionWithBalance(context.Background(), storageReq).Return(row, nil)
 
 				return row.ToEntity()
 			},
@@ -206,7 +324,7 @@ func TestRepository_Create(t *testing.T) {
 			name: "an overdraw becomes a message-less ConflictError",
 			mock: func(m *mocks.MockStorage) entity.Transaction {
 				m.EXPECT().
-					CreateTransactionWithBalance(context.Background(), req).
+					CreateTransactionWithBalance(context.Background(), storageReq).
 					Return(model.Transaction{}, storageError.InsufficientBalanceError)
 
 				return entity.Transaction{}
@@ -221,7 +339,7 @@ func TestRepository_Create(t *testing.T) {
 		{
 			name: "any other storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Transaction {
-				m.EXPECT().CreateTransactionWithBalance(context.Background(), req).Return(model.Transaction{}, errStub)
+				m.EXPECT().CreateTransactionWithBalance(context.Background(), storageReq).Return(model.Transaction{}, errStub)
 
 				return entity.Transaction{}
 			},
@@ -258,6 +376,17 @@ func TestRepository_Update(t *testing.T) {
 		Memo:         fakeMemo(),
 		OperationAt:  fakeOperationAt(),
 	}
+	storageReq := model.TransactionUpdateRequest{
+		ID:           req.ID,
+		AccountID:    req.AccountID,
+		CategoryID:   req.CategoryID,
+		Type:         req.Type,
+		CurrencyCode: req.CurrencyCode,
+		Amount:       req.Amount,
+		Memo:         req.Memo,
+		OperationAt:  req.OperationAt,
+		TagIDs:       req.TagIDs,
+	}
 
 	tests := []struct {
 		name         string
@@ -270,7 +399,7 @@ func TestRepository_Update(t *testing.T) {
 			mock: func(m *mocks.MockStorage) entity.Transaction {
 				row := fakeTransactionModel()
 				row.ID = req.ID
-				m.EXPECT().UpdateTransactionWithBalance(context.Background(), req).Return(row, true, nil)
+				m.EXPECT().UpdateTransactionWithBalance(context.Background(), storageReq).Return(row, true, nil)
 
 				return row.ToEntity()
 			},
@@ -281,7 +410,7 @@ func TestRepository_Update(t *testing.T) {
 			name: "an overdraw becomes a message-less ConflictError",
 			mock: func(m *mocks.MockStorage) entity.Transaction {
 				m.EXPECT().
-					UpdateTransactionWithBalance(context.Background(), req).
+					UpdateTransactionWithBalance(context.Background(), storageReq).
 					Return(model.Transaction{}, false, storageError.InsufficientBalanceError)
 
 				return entity.Transaction{}
@@ -296,7 +425,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "an unknown id becomes a message-less NotFoundError",
 			mock: func(m *mocks.MockStorage) entity.Transaction {
-				m.EXPECT().UpdateTransactionWithBalance(context.Background(), req).Return(model.Transaction{}, false, nil)
+				m.EXPECT().UpdateTransactionWithBalance(context.Background(), storageReq).Return(model.Transaction{}, false, nil)
 
 				return entity.Transaction{}
 			},
@@ -310,7 +439,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "a storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Transaction {
-				m.EXPECT().UpdateTransactionWithBalance(context.Background(), req).Return(model.Transaction{}, false, errStub)
+				m.EXPECT().UpdateTransactionWithBalance(context.Background(), storageReq).Return(model.Transaction{}, false, errStub)
 
 				return entity.Transaction{}
 			},
@@ -413,6 +542,17 @@ func TestRepository_CreateTransfer(t *testing.T) {
 		OperationAt:      fakeOperationAt(),
 		Memo:             fakeMemo(),
 	}
+	storageReq := model.TransferCreateRequest{
+		FromAccountID:    req.FromAccountID,
+		FromCurrencyCode: req.FromCurrencyCode,
+		ToAccountID:      req.ToAccountID,
+		ToCurrencyCode:   req.ToCurrencyCode,
+		Amount:           req.Amount,
+		CreditAmount:     req.CreditAmount,
+		Rate:             req.Rate,
+		OperationAt:      req.OperationAt,
+		Memo:             req.Memo,
+	}
 
 	tests := []struct {
 		name         string
@@ -424,7 +564,8 @@ func TestRepository_CreateTransfer(t *testing.T) {
 			name: "stores both legs and returns them",
 			mock: func(m *mocks.MockStorage) port.TransferResult {
 				legFrom, legTo := fakeTransactionModel(), fakeTransactionModel()
-				m.EXPECT().CreateTransferWithBalance(context.Background(), req).Return(legFrom, legTo, nil)
+				m.EXPECT().CreateTransferWithBalance(context.Background(), storageReq).
+					Return(model.CreateTransferResult{LegFrom: legFrom, LegTo: legTo}, nil)
 
 				return port.TransferResult{LegFrom: legFrom.ToEntity(), LegTo: legTo.ToEntity()}
 			},
@@ -435,8 +576,8 @@ func TestRepository_CreateTransfer(t *testing.T) {
 			name: "an overdraw on either leg becomes a message-less ConflictError",
 			mock: func(m *mocks.MockStorage) port.TransferResult {
 				m.EXPECT().
-					CreateTransferWithBalance(context.Background(), req).
-					Return(model.Transaction{}, model.Transaction{}, storageError.InsufficientBalanceError)
+					CreateTransferWithBalance(context.Background(), storageReq).
+					Return(model.CreateTransferResult{}, storageError.InsufficientBalanceError)
 
 				return port.TransferResult{}
 			},
@@ -451,8 +592,8 @@ func TestRepository_CreateTransfer(t *testing.T) {
 			name: "any other storage error is propagated",
 			mock: func(m *mocks.MockStorage) port.TransferResult {
 				m.EXPECT().
-					CreateTransferWithBalance(context.Background(), req).
-					Return(model.Transaction{}, model.Transaction{}, errStub)
+					CreateTransferWithBalance(context.Background(), storageReq).
+					Return(model.CreateTransferResult{}, errStub)
 
 				return port.TransferResult{}
 			},

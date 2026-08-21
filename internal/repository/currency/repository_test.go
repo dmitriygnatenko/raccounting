@@ -159,6 +159,13 @@ func TestRepository_Create(t *testing.T) {
 		Rate:    fakeRate(),
 		Default: gofakeit.Bool(),
 	}
+	storageReq := model.CurrencyCreateRequest{
+		Code:    req.Code,
+		Symbol:  req.Symbol,
+		Name:    req.Name,
+		Rate:    req.Rate,
+		Default: req.Default,
+	}
 
 	tests := []struct {
 		name         string
@@ -169,7 +176,7 @@ func TestRepository_Create(t *testing.T) {
 		{
 			name: "stores the currency and returns it",
 			mock: func(m *mocks.MockStorage) entity.Currency {
-				m.EXPECT().CreateCurrency(context.Background(), req).Return(nil)
+				m.EXPECT().CreateCurrency(context.Background(), storageReq).Return(nil)
 
 				return entity.Currency{
 					Code:    req.Code,
@@ -187,7 +194,7 @@ func TestRepository_Create(t *testing.T) {
 			name: "a taken code becomes a message-less ConflictError",
 			mock: func(m *mocks.MockStorage) entity.Currency {
 				m.EXPECT().
-					CreateCurrency(context.Background(), req).
+					CreateCurrency(context.Background(), storageReq).
 					Return(storageError.UniqueViolationError)
 
 				return entity.Currency{}
@@ -202,7 +209,7 @@ func TestRepository_Create(t *testing.T) {
 		{
 			name: "any other storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Currency {
-				m.EXPECT().CreateCurrency(context.Background(), req).Return(errStub)
+				m.EXPECT().CreateCurrency(context.Background(), storageReq).Return(errStub)
 
 				return entity.Currency{}
 			},
@@ -237,6 +244,14 @@ func TestRepository_Update(t *testing.T) {
 		Default:  gofakeit.Bool(),
 		Archived: gofakeit.Bool(),
 	}
+	storageReq := model.CurrencyUpdateRequest{
+		Code:     req.Code,
+		Symbol:   req.Symbol,
+		Name:     req.Name,
+		Rate:     req.Rate,
+		Default:  req.Default,
+		Archived: req.Archived,
+	}
 
 	tests := []struct {
 		name         string
@@ -249,7 +264,7 @@ func TestRepository_Update(t *testing.T) {
 			mock: func(m *mocks.MockStorage) entity.Currency {
 				row := fakeCurrencyModel()
 				row.Code = req.Code
-				m.EXPECT().UpdateCurrency(context.Background(), req).Return(row, true, nil)
+				m.EXPECT().UpdateCurrency(context.Background(), storageReq).Return(row, true, nil)
 
 				return row.ToEntity()
 			},
@@ -259,7 +274,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "an unknown code becomes a message-less NotFoundError",
 			mock: func(m *mocks.MockStorage) entity.Currency {
-				m.EXPECT().UpdateCurrency(context.Background(), req).Return(model.Currency{}, false, nil)
+				m.EXPECT().UpdateCurrency(context.Background(), storageReq).Return(model.Currency{}, false, nil)
 
 				return entity.Currency{}
 			},
@@ -273,7 +288,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "a storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Currency {
-				m.EXPECT().UpdateCurrency(context.Background(), req).Return(model.Currency{}, false, errStub)
+				m.EXPECT().UpdateCurrency(context.Background(), storageReq).Return(model.Currency{}, false, errStub)
 
 				return entity.Currency{}
 			},

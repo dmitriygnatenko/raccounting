@@ -6,7 +6,6 @@ import (
 	"errors"
 
 	"raccounting/internal/domain/entity"
-	"raccounting/internal/port"
 	"raccounting/internal/storage/model"
 )
 
@@ -14,11 +13,11 @@ import (
 // transfer_transaction_id (debit leg negative amount, credit leg positive) — and adjusts both
 // accounts' balances, atomically, in one DB transaction.
 func (s *Storage) CreateTransferWithBalance(
-	ctx context.Context, req port.TransferCreateRequest,
-) (legFrom, legTo model.Transaction, err error) {
+	ctx context.Context, req model.TransferCreateRequest,
+) (model.CreateTransferResult, error) {
 	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return model.Transaction{}, model.Transaction{}, err
+		return model.CreateTransferResult{}, err
 	}
 	defer func() { _ = tx.Rollback() }()
 
@@ -34,12 +33,12 @@ func (s *Storage) CreateTransferWithBalance(
 		req.ToCurrencyCode, creditAmount, req.Rate, req.ToAccountID, req.Memo, req.OperationAt,
 	)
 	if err != nil {
-		return model.Transaction{}, model.Transaction{}, err
+		return model.CreateTransferResult{}, err
 	}
 
 	fromID, err := fromRes.LastInsertId()
 	if err != nil {
-		return model.Transaction{}, model.Transaction{}, err
+		return model.CreateTransferResult{}, err
 	}
 
 	toRes, err := tx.ExecContext(ctx,
@@ -51,36 +50,36 @@ func (s *Storage) CreateTransferWithBalance(
 		fromID, req.FromCurrencyCode, debitAmount, req.Rate, req.FromAccountID, req.Memo, req.OperationAt,
 	)
 	if err != nil {
-		return model.Transaction{}, model.Transaction{}, err
+		return model.CreateTransferResult{}, err
 	}
 
 	toID, err := toRes.LastInsertId()
 	if err != nil {
-		return model.Transaction{}, model.Transaction{}, err
+		return model.CreateTransferResult{}, err
 	}
 
 	if _, err = tx.ExecContext(ctx,
 		`UPDATE transactions SET transfer_transaction_id = ? WHERE id = ?`, toID, fromID,
 	); err != nil {
-		return model.Transaction{}, model.Transaction{}, err
+		return model.CreateTransferResult{}, err
 	}
 
 	if _, err = tx.ExecContext(ctx,
 		`UPDATE accounts SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
 		debitAmount, req.FromAccountID,
 	); err != nil {
-		return model.Transaction{}, model.Transaction{}, wrapInsufficientBalance(err)
+		return model.CreateTransferResult{}, wrapInsufficientBalance(err)
 	}
 
 	if _, err = tx.ExecContext(ctx,
 		`UPDATE accounts SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
 		creditAmount, req.ToAccountID,
 	); err != nil {
-		return model.Transaction{}, model.Transaction{}, wrapInsufficientBalance(err)
+		return model.CreateTransferResult{}, wrapInsufficientBalance(err)
 	}
 
 	if err = tx.Commit(); err != nil {
-		return model.Transaction{}, model.Transaction{}, err
+		return model.CreateTransferResult{}, err
 	}
 
 	fromIDU := uint64(fromID)
@@ -89,7 +88,7 @@ func (s *Storage) CreateTransferWithBalance(
 	toCurrency := req.ToCurrencyCode
 	fromCurrency := req.FromCurrencyCode
 
-	legFrom = model.Transaction{
+	legFrom := model.Transaction{
 		ID:                    fromIDU,
 		Type:                  uint8(entity.TransactionTypeTransfer),
 		AccountID:             req.FromAccountID,
@@ -104,7 +103,7 @@ func (s *Storage) CreateTransferWithBalance(
 		OperationAt:           req.OperationAt,
 	}
 
-	legTo = model.Transaction{
+	legTo := model.Transaction{
 		ID:                    toIDU,
 		Type:                  uint8(entity.TransactionTypeTransfer),
 		AccountID:             req.ToAccountID,
@@ -119,7 +118,7 @@ func (s *Storage) CreateTransferWithBalance(
 		OperationAt:           req.OperationAt,
 	}
 
-	return legFrom, legTo, nil
+	return model.CreateTransferResult{LegFrom: legFrom, LegTo: legTo}, nil
 }
 
 // DeleteTransferWithBalance removes both legs of the transfer that id belongs to and reverses their

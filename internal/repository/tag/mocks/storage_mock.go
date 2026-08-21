@@ -11,7 +11,6 @@ package mocks
 
 import (
 	context "context"
-	port "raccounting/internal/port"
 	model "raccounting/internal/storage/model"
 	reflect "reflect"
 
@@ -43,7 +42,7 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 }
 
 // CreateTag mocks base method.
-func (m *MockStorage) CreateTag(ctx context.Context, req port.TagCreateRequest) (uint64, error) {
+func (m *MockStorage) CreateTag(ctx context.Context, req model.TagCreateRequest) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateTag", ctx, req)
 	ret0, _ := ret[0].(uint64)
@@ -103,7 +102,7 @@ func (mr *MockStorageMockRecorder) ListTags(ctx any) *gomock.Call {
 }
 
 // UpdateTag mocks base method.
-func (m *MockStorage) UpdateTag(ctx context.Context, req port.TagUpdateRequest) (model.Tag, bool, error) {
+func (m *MockStorage) UpdateTag(ctx context.Context, req model.TagUpdateRequest) (model.Tag, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateTag", ctx, req)
 	ret0, _ := ret[0].(model.Tag)

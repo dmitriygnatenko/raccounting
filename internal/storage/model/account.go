@@ -36,3 +36,23 @@ func (m Account) ToEntity() entity.Account {
 		UpdatedAt:    m.UpdatedAt,
 	}
 }
+
+// AccountCreateRequest bundles the parameters Storage.CreateAccount needs to insert a new account
+// row.
+type AccountCreateRequest struct {
+	Name         string
+	Type         entity.AccountType
+	CurrencyCode string
+	Balance      int64
+}
+
+// AccountUpdateRequest bundles the parameters Storage.UpdateAccount needs to update an account row.
+// Balance is deliberately absent — it is only ever changed by the transaction/transfer use cases,
+// inside their own DB transaction.
+type AccountUpdateRequest struct {
+	ID           uint64
+	Name         string
+	Type         entity.AccountType
+	CurrencyCode string
+	Archived     bool
+}

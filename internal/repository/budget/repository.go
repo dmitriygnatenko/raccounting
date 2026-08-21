@@ -18,7 +18,7 @@ type Storage interface {
 	ListCategoryBudgets(ctx context.Context) ([]model.Budget, error)
 	// SetCategoryBudget upserts the (categoryId, monthKey) row when Amount > 0, and deletes it
 	// otherwise.
-	SetCategoryBudget(ctx context.Context, req port.BudgetSetRequest) error
+	SetCategoryBudget(ctx context.Context, req model.BudgetSetRequest) error
 }
 
 // Repository implements port.BudgetRepository.
@@ -48,5 +48,9 @@ func (r *Repository) List(ctx context.Context) ([]entity.Budget, error) {
 
 // Set upserts (or, for a non-positive amount, clears) a category's budget for a month.
 func (r *Repository) Set(ctx context.Context, req port.BudgetSetRequest) error {
-	return r.storage.SetCategoryBudget(ctx, req)
+	return r.storage.SetCategoryBudget(ctx, model.BudgetSetRequest{
+		CategoryID: req.CategoryID,
+		MonthKey:   req.MonthKey,
+		Amount:     req.Amount,
+	})
 }

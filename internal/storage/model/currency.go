@@ -31,3 +31,22 @@ func (m Currency) ToEntity() entity.Currency {
 		UpdatedAt: m.UpdatedAt,
 	}
 }
+
+// CurrencyCreateRequest bundles the parameters Storage.CreateCurrency needs.
+type CurrencyCreateRequest struct {
+	Code    string
+	Symbol  string
+	Name    string
+	Rate    float64
+	Default bool
+}
+
+// CurrencyUpdateRequest bundles the parameters Storage.UpdateCurrency needs.
+type CurrencyUpdateRequest struct {
+	Code     string
+	Symbol   string
+	Name     string
+	Rate     float64
+	Default  bool
+	Archived bool
+}

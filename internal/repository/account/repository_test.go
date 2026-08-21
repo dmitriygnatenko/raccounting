@@ -180,6 +180,12 @@ func TestRepository_Create(t *testing.T) {
 		CurrencyCode: fakeCurrencyCode(),
 		Balance:      fakeBalance(),
 	}
+	storageReq := model.AccountCreateRequest{
+		Name:         req.Name,
+		Type:         req.Type,
+		CurrencyCode: req.CurrencyCode,
+		Balance:      req.Balance,
+	}
 
 	tests := []struct {
 		name         string
@@ -191,7 +197,7 @@ func TestRepository_Create(t *testing.T) {
 			name: "stores the account and returns it",
 			mock: func(m *mocks.MockStorage) entity.Account {
 				id := fakeID()
-				m.EXPECT().CreateAccount(context.Background(), req).Return(id, nil)
+				m.EXPECT().CreateAccount(context.Background(), storageReq).Return(id, nil)
 
 				return entity.Account{
 					ID:           id,
@@ -209,7 +215,7 @@ func TestRepository_Create(t *testing.T) {
 			name: "a negative opening balance becomes a message-less ConflictError",
 			mock: func(m *mocks.MockStorage) entity.Account {
 				m.EXPECT().
-					CreateAccount(context.Background(), req).
+					CreateAccount(context.Background(), storageReq).
 					Return(uint64(0), storageError.InsufficientBalanceError)
 
 				return entity.Account{}
@@ -224,7 +230,7 @@ func TestRepository_Create(t *testing.T) {
 		{
 			name: "any other storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Account {
-				m.EXPECT().CreateAccount(context.Background(), req).Return(uint64(0), errStub)
+				m.EXPECT().CreateAccount(context.Background(), storageReq).Return(uint64(0), errStub)
 
 				return entity.Account{}
 			},
@@ -258,6 +264,13 @@ func TestRepository_Update(t *testing.T) {
 		CurrencyCode: fakeCurrencyCode(),
 		Archived:     gofakeit.Bool(),
 	}
+	storageReq := model.AccountUpdateRequest{
+		ID:           req.ID,
+		Name:         req.Name,
+		Type:         req.Type,
+		CurrencyCode: req.CurrencyCode,
+		Archived:     req.Archived,
+	}
 
 	tests := []struct {
 		name         string
@@ -270,7 +283,7 @@ func TestRepository_Update(t *testing.T) {
 			mock: func(m *mocks.MockStorage) entity.Account {
 				row := fakeAccountModel()
 				row.ID = req.ID
-				m.EXPECT().UpdateAccount(context.Background(), req).Return(row, true, nil)
+				m.EXPECT().UpdateAccount(context.Background(), storageReq).Return(row, true, nil)
 
 				return row.ToEntity()
 			},
@@ -280,7 +293,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "an unknown id becomes a message-less NotFoundError",
 			mock: func(m *mocks.MockStorage) entity.Account {
-				m.EXPECT().UpdateAccount(context.Background(), req).Return(model.Account{}, false, nil)
+				m.EXPECT().UpdateAccount(context.Background(), storageReq).Return(model.Account{}, false, nil)
 
 				return entity.Account{}
 			},
@@ -294,7 +307,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "a storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Account {
-				m.EXPECT().UpdateAccount(context.Background(), req).Return(model.Account{}, false, errStub)
+				m.EXPECT().UpdateAccount(context.Background(), storageReq).Return(model.Account{}, false, errStub)
 
 				return entity.Account{}
 			},

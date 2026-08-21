@@ -11,7 +11,6 @@ package mocks
 
 import (
 	context "context"
-	port "raccounting/internal/port"
 	model "raccounting/internal/storage/model"
 	reflect "reflect"
 
@@ -58,7 +57,7 @@ func (mr *MockStorageMockRecorder) ListCategoryBudgets(ctx any) *gomock.Call {
 }
 
 // SetCategoryBudget mocks base method.
-func (m *MockStorage) SetCategoryBudget(ctx context.Context, req port.BudgetSetRequest) error {
+func (m *MockStorage) SetCategoryBudget(ctx context.Context, req model.BudgetSetRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetCategoryBudget", ctx, req)
 	ret0, _ := ret[0].(error)

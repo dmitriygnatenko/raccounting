@@ -61,12 +61,49 @@ type TransferResult struct {
 	LegTo   entity.Transaction
 }
 
+// TransactionListFilter narrows TransactionRepository.ListFiltered to a page of transactions
+// matching every non-nil/non-empty field. DateFrom/DateTo are inclusive, date-only bounds. Page is
+// 1-based; PageSize is the number of rows per page.
+type TransactionListFilter struct {
+	DateFrom   *time.Time
+	DateTo     *time.Time
+	AccountID  *uint64
+	CategoryID *uint64
+	TagID      *uint64
+	Type       *entity.TransactionType
+	Search     string
+	Page       int
+	PageSize   int
+}
+
+// TransactionListResult is what ListFiltered returns: the requested page, plus enough to paginate
+// (TotalCount, TotalPages) and to show an accurate total for the whole filtered set rather than just
+// the page (SumsByCurrency — the SUM(amount) of every matching row, keyed by currency code, since
+// converting to one base currency requires exchange rates the repository doesn't have).
+type TransactionListResult struct {
+	Transactions   []entity.Transaction
+	TotalCount     int
+	SumsByCurrency map[string]int64
+}
+
+// TransactionUsage is the set of account/category ids referenced by at least one transaction — cheap
+// to compute (bounded by account/category count, not transaction count) and used to gate "delete
+// this account/category" UI without loading every transaction.
+type TransactionUsage struct {
+	AccountIDs  []uint64
+	CategoryIDs []uint64
+}
+
 // TransactionRepository persists Transactions, keeping each transaction's account balance in sync
 // as a side effect of Create/Update/Delete.
 // Transfer legs (Type == entity.TransactionTypeTransfer) are managed through
 // CreateTransfer/DeleteTransfer instead, not through Create/Update.
 type TransactionRepository interface {
 	List(ctx context.Context) ([]entity.Transaction, error)
+	// ListFiltered returns one page of transactions matching filter, most recent operation first.
+	ListFiltered(ctx context.Context, filter TransactionListFilter) (TransactionListResult, error)
+	// Usage returns the account/category ids referenced by at least one transaction.
+	Usage(ctx context.Context) (TransactionUsage, error)
 	// FindByID returns a *domainerror.NotFoundError if no transaction with this id exists.
 	FindByID(ctx context.Context, id uint64) (entity.Transaction, error)
 	// Create returns a *domainerror.ConflictError if applying the transaction's balance effect would

@@ -52,11 +52,11 @@ App.TransactionsView = {
       </div>
 
       <div class="flex items-center justify-between text-sm text-ink-500 px-1">
-        <span>{{ App.t('Найдено') }}: {{ filtered.length }}</span>
+        <span>{{ App.t('Найдено') }}: {{ totalCount }}</span>
         <span>{{ App.t('Сумма') }}: <span class="font-semibold" :class="resultSum < 0 ? 'text-money-neg' : 'text-money-pos'">{{ App.formatMoney(resultSum, resultCurrency) }}</span></span>
       </div>
 
-      <div v-if="finance.state.loading" class="space-y-2">
+      <div v-if="finance.state.loading || loading" class="space-y-2">
         <skeleton-block v-for="i in 6" :key="i" class="h-14" />
       </div>
 
@@ -134,6 +134,16 @@ App.TransactionsView = {
             </li>
           </ul>
         </div>
+
+        <div v-if="totalPages > 1" class="flex items-center justify-between px-4 md:px-5 py-3 border-t border-ink-200">
+          <button type="button" :disabled="page <= 1"
+            class="px-3 py-1.5 rounded-lg border border-ink-200 text-sm font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            @click="page -= 1">{{ App.t('Назад') }}</button>
+          <span class="text-xs text-ink-500">{{ App.t('Страница {page} из {total}', { page, total: totalPages }) }}</span>
+          <button type="button" :disabled="page >= totalPages"
+            class="px-3 py-1.5 rounded-lg border border-ink-200 text-sm font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            @click="page += 1">{{ App.t('Далее') }}</button>
+        </div>
       </div>
     </div>
   `,
@@ -148,36 +158,27 @@ App.TransactionsView = {
         categoryId: '',
         tagId: '',
         direction: 'all',
+        // Defaults to the current month — with potentially thousands of transactions, the backend
+        // only ever returns what's actually asked for (see App.api.getTransactions/periodToDateRange).
         period: 'month',
         dateFrom: '',
         dateTo: '',
       },
+      page: 1,
+      pageSize: 100,
+      rows: [],
+      totalCount: 0,
+      totalPages: 1,
+      sumsByCurrency: {},
+      loading: true,
+      searchDebounce: null,
+      requestToken: 0,
     }
   },
   computed: {
-    filtered() {
-      const search = this.filters.search.trim().toLowerCase()
-      return this.finance.state.transactions
-        .filter((t) => !this.filters.accountId || t.accountId === this.filters.accountId)
-        .filter((t) => !this.filters.categoryId || t.categoryId === this.filters.categoryId)
-        .filter((t) => !this.filters.tagId || (t.tagIds || []).includes(this.filters.tagId))
-        .filter((t) => {
-          if (this.filters.direction === 'all') return true
-          if (this.filters.direction === 'transfer') return t.type === App.TransactionType.TRANSFER
-          if (t.type === App.TransactionType.TRANSFER) return false
-          return this.filters.direction === 'expense' ? t.amount < 0 : t.amount > 0
-        })
-        .filter((t) => this.inPeriod(t.date))
-        .filter((t) => {
-          if (!search) return true
-          const cat = this.finance.categoryById.get(t.categoryId ?? '')?.name ?? ''
-          return t.memo.toLowerCase().includes(search) || cat.toLowerCase().includes(search)
-        })
-        .sort((a, b) => (a.date < b.date ? 1 : -1))
-    },
     groups() {
       const map = new Map()
-      for (const t of this.filtered) {
+      for (const t of this.rows) {
         if (!map.has(t.date)) map.set(t.date, [])
         map.get(t.date).push(t)
       }
@@ -191,34 +192,74 @@ App.TransactionsView = {
     resultCurrency() {
       return this.filters.accountId ? this.finance.accountById.get(this.filters.accountId)?.currency : this.finance.state.baseCurrency
     },
+    // resultSum totals every matching transaction across every page (via the backend's
+    // sumsByCurrency aggregate), not just the currently displayed page.
     resultSum() {
-      if (this.filters.accountId) return this.filtered.reduce((s, t) => s + t.amount, 0)
-      return this.filtered.reduce((s, t) => s + this.finance.amountInBase(t), 0)
+      if (this.filters.accountId) {
+        return Object.values(this.sumsByCurrency).reduce((s, v) => s + v, 0)
+      }
+      return Object.entries(this.sumsByCurrency).reduce((s, [code, v]) => s + this.finance.toBase(v, code), 0)
     },
     hasActiveFilters() {
       return !!this.filters.search || !!this.filters.accountId || !!this.filters.categoryId || !!this.filters.tagId || this.filters.direction !== 'all' || this.filters.period !== 'month'
     },
+    directionType() {
+      if (this.filters.direction === 'income') return App.TransactionType.INCOME
+      if (this.filters.direction === 'expense') return App.TransactionType.EXPENSE
+      if (this.filters.direction === 'transfer') return App.TransactionType.TRANSFER
+      return undefined
+    },
+    // A single string combining every filter except search — watched as one source so setting
+    // several fields at once (e.g. resetFilters) triggers exactly one refetch, not one per field.
+    nonSearchFiltersKey() {
+      const f = this.filters
+      return [f.accountId, f.categoryId, f.tagId, f.direction, f.period, f.dateFrom, f.dateTo].join('|')
+    },
+  },
+  watch: {
+    nonSearchFiltersKey() { this.onFiltersChanged() },
+    'filters.search'() {
+      clearTimeout(this.searchDebounce)
+      this.searchDebounce = setTimeout(() => this.onFiltersChanged(), 350)
+    },
+    page() { this.refresh() },
+    'finance.state.transactionsVersion'() { this.refresh() },
+  },
+  mounted() {
+    this.refresh()
   },
   methods: {
     tagsFor(t) {
       return (t.tagIds || []).map((id) => this.finance.tagById.get(id)).filter(Boolean)
     },
-    inPeriod(dateStr) {
-      if (this.filters.period === 'all') return true
-      const d = new Date(dateStr)
-      const now = new Date()
-      if (this.filters.period === 'month') return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
-      if (this.filters.period === 'lastMonth') {
-        const last = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-        return d.getFullYear() === last.getFullYear() && d.getMonth() === last.getMonth()
+    onFiltersChanged() {
+      if (this.page !== 1) this.page = 1
+      else this.refresh()
+    },
+    async refresh() {
+      const token = ++this.requestToken
+      this.loading = true
+      const { dateFrom, dateTo } = App.periodToDateRange(this.filters.period, this.filters.dateFrom, this.filters.dateTo)
+      try {
+        const res = await App.api.getTransactions({
+          dateFrom,
+          dateTo,
+          accountId: this.filters.accountId || undefined,
+          categoryId: this.filters.categoryId || undefined,
+          tagId: this.filters.tagId || undefined,
+          type: this.directionType,
+          search: this.filters.search.trim() || undefined,
+          page: this.page,
+          pageSize: this.pageSize,
+        })
+        if (token !== this.requestToken) return
+        this.rows = res.transactions
+        this.totalCount = res.totalCount
+        this.totalPages = res.totalPages
+        this.sumsByCurrency = res.sumsByCurrency
+      } finally {
+        if (token === this.requestToken) this.loading = false
       }
-      if (this.filters.period === 'year') return d.getFullYear() === now.getFullYear()
-      if (this.filters.period === 'custom') {
-        if (this.filters.dateFrom && dateStr < this.filters.dateFrom) return false
-        if (this.filters.dateTo && dateStr > this.filters.dateTo) return false
-        return true
-      }
-      return true
     },
     resetFilters() {
       this.filters.search = ''

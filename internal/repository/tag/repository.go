@@ -21,21 +21,15 @@ type Storage interface {
 	FindTagsByIDs(ctx context.Context, ids []uint64) ([]model.Tag, error)
 	// CreateTag inserts a tag row and returns its new id. A name collision comes back wrapped in
 	// storageError.UniqueViolationError.
-	CreateTag(
-		ctx context.Context,
-		req port.TagCreateRequest,
-	) (id uint64, err error)
+	CreateTag(ctx context.Context, req model.TagCreateRequest) (id uint64, err error)
 	// UpdateTag changes name/color, returning the full updated row. found is false if no tag with
 	// this id exists. A name collision comes back wrapped in storageError.UniqueViolationError.
 	UpdateTag(
 		ctx context.Context,
-		req port.TagUpdateRequest,
+		req model.TagUpdateRequest,
 	) (row model.Tag, found bool, err error)
 	// DeleteTag removes a tag row. found is false if no tag with this id existed.
-	DeleteTag(
-		ctx context.Context,
-		id uint64,
-	) (found bool, err error)
+	DeleteTag(ctx context.Context, id uint64) (found bool, err error)
 }
 
 // Repository implements port.TagRepository.
@@ -83,7 +77,10 @@ func (r *Repository) FindByIDs(ctx context.Context, ids []uint64) ([]entity.Tag,
 func (r *Repository) Create(
 	ctx context.Context, req port.TagCreateRequest,
 ) (entity.Tag, error) {
-	id, err := r.storage.CreateTag(ctx, req)
+	id, err := r.storage.CreateTag(ctx, model.TagCreateRequest{
+		Name:  req.Name,
+		Color: req.Color,
+	})
 	if err != nil {
 		if errors.Is(err, storageError.UniqueViolationError) {
 			return entity.Tag{}, &domainerror.ConflictError{}
@@ -103,9 +100,14 @@ func (r *Repository) Create(
 // *domainerror.NotFoundError, and a name already in use as a message-less
 // *domainerror.ConflictError — the use case supplies the message either way.
 func (r *Repository) Update(
-	ctx context.Context, req port.TagUpdateRequest,
+	ctx context.Context,
+	req port.TagUpdateRequest,
 ) (entity.Tag, error) {
-	row, found, err := r.storage.UpdateTag(ctx, req)
+	row, found, err := r.storage.UpdateTag(ctx, model.TagUpdateRequest{
+		ID:    req.ID,
+		Name:  req.Name,
+		Color: req.Color,
+	})
 	if err != nil {
 		if errors.Is(err, storageError.UniqueViolationError) {
 			return entity.Tag{}, &domainerror.ConflictError{}
