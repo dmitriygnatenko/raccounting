@@ -65,7 +65,9 @@ func (s *Storage) FindAccountByID(ctx context.Context, id uint64) (model.Account
 
 // CreateAccount inserts an account row and returns its new id. A negative opening balance comes
 // back wrapped in storageError.InsufficientBalanceError (accounts.balance is unsigned).
-func (s *Storage) CreateAccount(ctx context.Context, req model.AccountCreateRequest) (uint64, error) {
+func (s *Storage) CreateAccount(
+	ctx context.Context, req model.AccountCreateRequest,
+) (uint64, error) {
 	id, err := s.insertReturningID(ctx,
 		`INSERT INTO accounts (name, type, currency, balance) VALUES (?, ?, ?, ?)`,
 		req.Name, uint8(req.Type), req.CurrencyCode, req.Balance,
