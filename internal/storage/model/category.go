@@ -29,3 +29,18 @@ func (m Category) ToEntity() entity.Category {
 		UpdatedAt: m.UpdatedAt,
 	}
 }
+
+// CategoryCreateRequest bundles the parameters Storage.CreateCategory needs.
+type CategoryCreateRequest struct {
+	Name  string
+	Type  entity.CategoryType
+	Color string
+}
+
+// CategoryUpdateRequest bundles the parameters Storage.UpdateCategory needs.
+type CategoryUpdateRequest struct {
+	ID       uint64
+	Name     string
+	Color    string
+	Archived bool
+}

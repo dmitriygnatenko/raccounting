@@ -7,29 +7,39 @@ function createFinanceStore() {
   const state = reactive({
     accounts: [],
     categories: [],
-    transactions: [],
     currencies: [],
     tags: [],
     baseCurrency: 'RUB',
     categoryBudgets: {},
+    usedAccountIds: new Set(),
+    usedCategoryIds: new Set(),
+    // Bumped by every mutation that can add/remove/change a transaction — views that keep their own
+    // bounded window of transactions (Операции/Отчёты/Обзор) watch this to know when to refetch,
+    // since transactions are no longer cached in one global array here (see the module doc comment).
+    transactionsVersion: 0,
     loading: true,
     loaded: false,
   })
 
+  async function refreshUsage() {
+    const usage = await App.api.getTransactionsUsage()
+    state.usedAccountIds = new Set(usage.accountIds)
+    state.usedCategoryIds = new Set(usage.categoryIds)
+  }
+
   async function load() {
     if (state.loaded) return
     state.loading = true
-    const [a, c, t, cur, budgets, tags] = await Promise.all([
+    const [a, c, cur, budgets, tags] = await Promise.all([
       App.api.getAccounts(),
       App.api.getCategories(),
-      App.api.getTransactions(),
       App.api.getCurrencies(),
       App.api.getCategoryBudgets(),
       App.api.getTags(),
+      refreshUsage(),
     ])
     state.accounts = a
     state.categories = c
-    state.transactions = t
     state.currencies = cur
     state.baseCurrency = cur.find((c) => c.is_default)?.code ?? cur[0]?.code ?? 'RUB'
     state.categoryBudgets = budgets
@@ -43,6 +53,7 @@ function createFinanceStore() {
   async function reload() {
     state.loaded = false
     await load()
+    state.transactionsVersion += 1
   }
 
   function budgetFor(categoryId, monthKey) {
@@ -88,39 +99,40 @@ function createFinanceStore() {
     state.accounts = await App.api.getAccounts()
   }
 
+  // afterTransactionMutation refreshes what a transaction add/edit/delete can invalidate — account
+  // balances and the usage sets — and bumps transactionsVersion so any view holding its own bounded
+  // window of transactions knows to refetch.
+  async function afterTransactionMutation() {
+    await Promise.all([refreshAccounts(), refreshUsage()])
+    state.transactionsVersion += 1
+  }
+
   async function addTransaction(tx) {
     const created = await App.api.createTransaction(tx)
-    state.transactions.unshift(created)
-    await refreshAccounts()
+    await afterTransactionMutation()
     return created
   }
 
   async function updateTransaction(tx) {
-    await App.api.updateTransaction(tx)
-    const idx = state.transactions.findIndex((t) => t.id === tx.id)
-    if (idx !== -1) state.transactions[idx] = tx
-    await refreshAccounts()
+    const updated = await App.api.updateTransaction(tx)
+    await afterTransactionMutation()
+    return updated
   }
 
   async function deleteTransaction(id) {
     await App.api.deleteTransaction(id)
-    state.transactions = state.transactions.filter((t) => t.id !== id)
-    await refreshAccounts()
+    await afterTransactionMutation()
   }
 
   async function addTransfer({ fromAccountId, toAccountId, amount, toAmount, rate, date, memo }) {
     const { legFrom, legTo } = await App.api.createTransfer({ fromAccountId, toAccountId, amount, toAmount, rate, date, memo })
-    state.transactions.unshift(legTo, legFrom)
-    await refreshAccounts()
+    await afterTransactionMutation()
     return { legFrom, legTo }
   }
 
   async function deleteTransfer(id) {
-    const leg = state.transactions.find((t) => t.id === id)
-    const pairedId = leg?.transferTransactionId
     await App.api.deleteTransfer(id)
-    state.transactions = state.transactions.filter((t) => t.id !== id && t.id !== pairedId)
-    await refreshAccounts()
+    await afterTransactionMutation()
   }
 
   async function updateTransfer(id, payload) {
@@ -141,7 +153,7 @@ function createFinanceStore() {
   }
 
   function isAccountInUse(id) {
-    return state.transactions.some((t) => t.accountId === id)
+    return state.usedAccountIds.has(id)
   }
 
   async function archiveAccount(id) {
@@ -219,7 +231,7 @@ function createFinanceStore() {
   // they're just removed along with it (see deleteCategory; the backend cascades budgets.category_id
   // ON DELETE CASCADE).
   function isCategoryInUse(id) {
-    return state.transactions.some((t) => t.categoryId === id)
+    return state.usedCategoryIds.has(id)
   }
 
   async function archiveCategory(id) {
@@ -256,9 +268,9 @@ function createFinanceStore() {
   async function deleteTag(id) {
     await App.api.deleteTag(id)
     state.tags = state.tags.filter((t) => t.id !== id)
-    state.transactions.forEach((t) => {
-      if (t.tagIds?.includes(id)) t.tagIds = t.tagIds.filter((tagId) => tagId !== id)
-    })
+    // Any transaction referencing this tag is updated in the DB by the backend's cascade delete —
+    // bump transactionsVersion so views holding their own bounded window refetch and pick that up.
+    state.transactionsVersion += 1
   }
 
   return {

@@ -31,6 +31,7 @@ import (
 	transactionDelete "raccounting/internal/domain/usecase/transaction/delete"
 	transactionList "raccounting/internal/domain/usecase/transaction/list"
 	transactionUpdate "raccounting/internal/domain/usecase/transaction/update"
+	transactionUsage "raccounting/internal/domain/usecase/transaction/usage"
 
 	transferCreate "raccounting/internal/domain/usecase/transfer/create"
 	transferDelete "raccounting/internal/domain/usecase/transfer/delete"
@@ -88,6 +89,7 @@ type TransactionUseCases struct {
 	Update *transactionUpdate.UseCase
 	Delete *transactionDelete.UseCase
 	List   *transactionList.UseCase
+	Usage  *transactionUsage.UseCase
 }
 
 // TransferUseCases collects the use cases behind the /api/transfers routes.
@@ -165,6 +167,7 @@ func (s *Server) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/currencies/{code}", s.requireAuth(s.handleUpdateCurrency))
 	mux.HandleFunc("DELETE /api/currencies/{code}", s.requireAuth(s.handleDeleteCurrency))
 
+	mux.HandleFunc("GET /api/transactions/usage", s.requireAuth(s.handleTransactionUsage))
 	mux.HandleFunc("GET /api/transactions", s.requireAuth(s.handleListTransactions))
 	mux.HandleFunc("POST /api/transactions", s.requireAuth(s.handleCreateTransaction))
 	mux.HandleFunc("PUT /api/transactions/{id}", s.requireAuth(s.handleUpdateTransaction))

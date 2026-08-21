@@ -17,7 +17,11 @@ App.DonutChart = {
     return { chart: null }
   },
   mounted() {
-    this.chart = new Chart(this.$refs.canvas, {
+    // markRaw: Chart.js instances are deeply circular (canvas ↔ chart ↔ layout boxes) and mutate
+    // their own internals directly. Left in Vue's data(), the instance gets wrapped in a reactive
+    // Proxy, which breaks that direct mutation (Chart.js's layout code error setting properties
+    // like `fullSize` on `undefined`) and can recurse into a stack overflow. markRaw keeps it plain.
+    this.chart = Vue.markRaw(new Chart(this.$refs.canvas, {
       type: 'doughnut',
       data: this.buildData(),
       options: {
@@ -29,16 +33,22 @@ App.DonutChart = {
           tooltip: { backgroundColor: '#0f172a', padding: 10, cornerRadius: 8 },
         },
       },
-    })
+    }))
   },
   beforeUnmount() {
     this.chart?.destroy()
   },
-  watch: {
-    values() {
-      this.refresh()
+  computed: {
+    // labels/values/colors always change together on a data refresh — watching them individually
+    // fires refresh() (and chart.update()) once per prop in the same tick, and the second call can
+    // hit Chart.js mid-redraw from the first and throw, leaving the canvas stuck on stale data. One
+    // watcher over a combined signature collapses that into a single update.
+    signature() {
+      return JSON.stringify([this.labels, this.values, this.colors])
     },
-    labels() {
+  },
+  watch: {
+    signature() {
       this.refresh()
     },
   },
@@ -64,7 +74,11 @@ App.BarChart = {
     return { chart: null }
   },
   mounted() {
-    this.chart = new Chart(this.$refs.canvas, {
+    // markRaw: Chart.js instances are deeply circular (canvas ↔ chart ↔ layout boxes) and mutate
+    // their own internals directly. Left in Vue's data(), the instance gets wrapped in a reactive
+    // Proxy, which breaks that direct mutation (Chart.js's layout code error setting properties
+    // like `fullSize` on `undefined`) and can recurse into a stack overflow. markRaw keeps it plain.
+    this.chart = Vue.markRaw(new Chart(this.$refs.canvas, {
       type: 'bar',
       data: this.buildData(),
       options: {
@@ -91,16 +105,20 @@ App.BarChart = {
           },
         },
       },
-    })
+    }))
   },
   beforeUnmount() {
     this.chart?.destroy()
   },
-  watch: {
-    income() {
-      this.refresh()
+  computed: {
+    // See the identical note in App.DonutChart — one watcher over a combined signature avoids
+    // firing chart.update() once per changed prop in the same tick.
+    signature() {
+      return JSON.stringify([this.labels, this.income, this.expense])
     },
-    expense() {
+  },
+  watch: {
+    signature() {
       this.refresh()
     },
   },
@@ -129,7 +147,11 @@ App.LineChart = {
     return { chart: null }
   },
   mounted() {
-    this.chart = new Chart(this.$refs.canvas, {
+    // markRaw: Chart.js instances are deeply circular (canvas ↔ chart ↔ layout boxes) and mutate
+    // their own internals directly. Left in Vue's data(), the instance gets wrapped in a reactive
+    // Proxy, which breaks that direct mutation (Chart.js's layout code error setting properties
+    // like `fullSize` on `undefined`) and can recurse into a stack overflow. markRaw keeps it plain.
+    this.chart = Vue.markRaw(new Chart(this.$refs.canvas, {
       type: 'line',
       data: this.buildData(),
       options: {
@@ -153,16 +175,20 @@ App.LineChart = {
           },
         },
       },
-    })
+    }))
   },
   beforeUnmount() {
     this.chart?.destroy()
   },
-  watch: {
-    values() {
-      this.refresh()
+  computed: {
+    // See the identical note in App.DonutChart — one watcher over a combined signature avoids
+    // firing chart.update() once per changed prop in the same tick.
+    signature() {
+      return JSON.stringify([this.labels, this.values])
     },
-    labels() {
+  },
+  watch: {
+    signature() {
       this.refresh()
     },
   },

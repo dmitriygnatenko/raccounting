@@ -3,7 +3,6 @@ package mysql
 import (
 	"context"
 
-	"raccounting/internal/port"
 	"raccounting/internal/storage/model"
 )
 
@@ -57,7 +56,7 @@ func (s *Storage) ExistsCategory(ctx context.Context, id uint64) (bool, error) {
 }
 
 // CreateCategory inserts a category row and returns its new id.
-func (s *Storage) CreateCategory(ctx context.Context, req port.CategoryCreateRequest) (uint64, error) {
+func (s *Storage) CreateCategory(ctx context.Context, req model.CategoryCreateRequest) (uint64, error) {
 	return s.insertReturningID(ctx,
 		`INSERT INTO categories (name, type, color) VALUES (?, ?, ?)`,
 		req.Name, uint8(req.Type), req.Color,
@@ -66,7 +65,7 @@ func (s *Storage) CreateCategory(ctx context.Context, req port.CategoryCreateReq
 
 // UpdateCategory changes name/color/status, returning the full updated row.
 func (s *Storage) UpdateCategory(
-	ctx context.Context, req port.CategoryUpdateRequest,
+	ctx context.Context, req model.CategoryUpdateRequest,
 ) (model.Category, bool, error) {
 	res, err := s.DB.ExecContext(ctx,
 		`UPDATE categories SET name = ?, color = ?, status = ?, updated_at = CURRENT_TIMESTAMP

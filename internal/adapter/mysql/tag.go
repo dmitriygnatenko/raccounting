@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 
-	"raccounting/internal/port"
 	"raccounting/internal/storage/model"
 )
 
@@ -87,7 +86,7 @@ func (s *Storage) FindTagsByIDs(ctx context.Context, ids []uint64) ([]model.Tag,
 
 // CreateTag inserts a tag row and returns its new id. A UNIQUE(name) violation comes back wrapped
 // in storageError.UniqueViolationError.
-func (s *Storage) CreateTag(ctx context.Context, req port.TagCreateRequest) (uint64, error) {
+func (s *Storage) CreateTag(ctx context.Context, req model.TagCreateRequest) (uint64, error) {
 	id, err := s.insertReturningID(ctx,
 		`INSERT INTO tags (name, color) VALUES (?, ?)`,
 		req.Name, req.Color,
@@ -99,7 +98,7 @@ func (s *Storage) CreateTag(ctx context.Context, req port.TagCreateRequest) (uin
 // UpdateTag changes name/color, returning the full updated row. A UNIQUE(name) violation comes
 // back wrapped in storageError.UniqueViolationError.
 func (s *Storage) UpdateTag(
-	ctx context.Context, req port.TagUpdateRequest,
+	ctx context.Context, req model.TagUpdateRequest,
 ) (model.Tag, bool, error) {
 	res, err := s.DB.ExecContext(ctx,
 		`UPDATE tags SET name = ?, color = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,

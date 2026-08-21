@@ -140,6 +140,8 @@ App.CurrencyModal = {
           await this.finance.addCurrency({ code, symbol, name, rate })
         }
         this.close()
+      } catch (e) {
+        this.error = e.message
       } finally {
         this.saving = false
       }
@@ -150,6 +152,8 @@ App.CurrencyModal = {
       try {
         await this.finance.archiveCurrency(this.ui.editingCurrency.code)
         this.close()
+      } catch (e) {
+        this.error = e.message
       } finally {
         this.saving = false
       }
@@ -160,6 +164,8 @@ App.CurrencyModal = {
       try {
         await this.finance.unarchiveCurrency(this.ui.editingCurrency.code)
         this.close()
+      } catch (e) {
+        this.error = e.message
       } finally {
         this.saving = false
       }
@@ -170,6 +176,8 @@ App.CurrencyModal = {
       try {
         await this.finance.deleteCurrency(this.ui.editingCurrency.code)
         this.close()
+      } catch (e) {
+        this.error = e.message
       } finally {
         this.saving = false
       }

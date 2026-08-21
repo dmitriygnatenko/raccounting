@@ -11,7 +11,6 @@ package mocks
 
 import (
 	context "context"
-	port "raccounting/internal/port"
 	model "raccounting/internal/storage/model"
 	reflect "reflect"
 
@@ -43,7 +42,7 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 }
 
 // CreateTransactionWithBalance mocks base method.
-func (m *MockStorage) CreateTransactionWithBalance(ctx context.Context, req port.TransactionCreateRequest) (model.Transaction, error) {
+func (m *MockStorage) CreateTransactionWithBalance(ctx context.Context, req model.TransactionCreateRequest) (model.Transaction, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateTransactionWithBalance", ctx, req)
 	ret0, _ := ret[0].(model.Transaction)
@@ -58,13 +57,12 @@ func (mr *MockStorageMockRecorder) CreateTransactionWithBalance(ctx, req any) *g
 }
 
 // CreateTransferWithBalance mocks base method.
-func (m *MockStorage) CreateTransferWithBalance(ctx context.Context, req port.TransferCreateRequest) (model.Transaction, model.Transaction, error) {
+func (m *MockStorage) CreateTransferWithBalance(ctx context.Context, req model.TransferCreateRequest) (model.CreateTransferResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateTransferWithBalance", ctx, req)
-	ret0, _ := ret[0].(model.Transaction)
-	ret1, _ := ret[1].(model.Transaction)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(model.CreateTransferResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // CreateTransferWithBalance indicates an expected call of CreateTransferWithBalance.
@@ -133,8 +131,38 @@ func (mr *MockStorageMockRecorder) ListTransactions(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransactions", reflect.TypeOf((*MockStorage)(nil).ListTransactions), ctx)
 }
 
+// ListTransactionsFiltered mocks base method.
+func (m *MockStorage) ListTransactionsFiltered(ctx context.Context, filter model.TransactionListFilter) (model.ListTransactionsFilteredResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTransactionsFiltered", ctx, filter)
+	ret0, _ := ret[0].(model.ListTransactionsFilteredResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListTransactionsFiltered indicates an expected call of ListTransactionsFiltered.
+func (mr *MockStorageMockRecorder) ListTransactionsFiltered(ctx, filter any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTransactionsFiltered", reflect.TypeOf((*MockStorage)(nil).ListTransactionsFiltered), ctx, filter)
+}
+
+// TransactionUsage mocks base method.
+func (m *MockStorage) TransactionUsage(ctx context.Context) (model.TransactionUsage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TransactionUsage", ctx)
+	ret0, _ := ret[0].(model.TransactionUsage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TransactionUsage indicates an expected call of TransactionUsage.
+func (mr *MockStorageMockRecorder) TransactionUsage(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransactionUsage", reflect.TypeOf((*MockStorage)(nil).TransactionUsage), ctx)
+}
+
 // UpdateTransactionWithBalance mocks base method.
-func (m *MockStorage) UpdateTransactionWithBalance(ctx context.Context, req port.TransactionUpdateRequest) (model.Transaction, bool, error) {
+func (m *MockStorage) UpdateTransactionWithBalance(ctx context.Context, req model.TransactionUpdateRequest) (model.Transaction, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateTransactionWithBalance", ctx, req)
 	ret0, _ := ret[0].(model.Transaction)

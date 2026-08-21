@@ -25,3 +25,16 @@ func (m Tag) ToEntity() entity.Tag {
 		UpdatedAt: m.UpdatedAt,
 	}
 }
+
+// TagCreateRequest bundles the parameters Storage.CreateTag needs.
+type TagCreateRequest struct {
+	Name  string
+	Color string
+}
+
+// TagUpdateRequest bundles the parameters Storage.UpdateTag needs.
+type TagUpdateRequest struct {
+	ID    uint64
+	Name  string
+	Color string
+}

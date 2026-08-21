@@ -12,7 +12,7 @@ App.DashboardView = {
     'bar-chart': App.BarChart,
   },
   template: `
-    <div v-if="finance.state.loading" class="space-y-5">
+    <div v-if="finance.state.loading || loading" class="space-y-5">
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <skeleton-block v-for="i in 4" :key="i" class="h-24" />
       </div>
@@ -87,6 +87,10 @@ App.DashboardView = {
       finance: App.financeStore,
       now,
       currentMonthKey: `${now.getFullYear()}-${now.getMonth()}`,
+      // Bounded to the last 6 months (see loadTransactions) rather than the whole transaction
+      // history, since that's all monthExpenses/monthIncome/monthlyTrend below need.
+      sixMonthTransactions: [],
+      loading: true,
     }
   },
   computed: {
@@ -94,10 +98,10 @@ App.DashboardView = {
       return App.formatMonthLabel(this.now.getFullYear(), this.now.getMonth())
     },
     monthExpenses() {
-      return this.finance.state.transactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount < 0 && monthKey(t.date) === this.currentMonthKey)
+      return this.sixMonthTransactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount < 0 && monthKey(t.date) === this.currentMonthKey)
     },
     monthIncome() {
-      return this.finance.state.transactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount > 0 && monthKey(t.date) === this.currentMonthKey)
+      return this.sixMonthTransactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount > 0 && monthKey(t.date) === this.currentMonthKey)
     },
     totalExpense() {
       return this.monthExpenses.reduce((s, t) => s + Math.abs(this.finance.amountInBase(t)), 0)
@@ -129,7 +133,7 @@ App.DashboardView = {
         const d = new Date(this.now.getFullYear(), this.now.getMonth() - i, 1)
         months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: App.formatMonthLabel(d.getFullYear(), d.getMonth()), income: 0, expense: 0 })
       }
-      for (const t of this.finance.state.transactions) {
+      for (const t of this.sixMonthTransactions) {
         if (t.type === App.TransactionType.TRANSFER) continue
         const key = monthKey(t.date)
         const m = months.find((x) => x.key === key)
@@ -141,7 +145,23 @@ App.DashboardView = {
       return months
     },
   },
+  watch: {
+    'finance.state.transactionsVersion'() { this.loadTransactions() },
+  },
+  async mounted() {
+    await this.loadTransactions()
+  },
   methods: {
     formatMoney: App.formatMoney,
+    async loadTransactions() {
+      this.loading = true
+      const dateFrom = App.dateStr(new Date(this.now.getFullYear(), this.now.getMonth() - 5, 1))
+      const dateTo = App.dateStr(this.now)
+      try {
+        this.sixMonthTransactions = await App.api.getAllTransactions({ dateFrom, dateTo })
+      } finally {
+        this.loading = false
+      }
+    },
   },
 }

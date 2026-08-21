@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"raccounting/internal/domain/entity"
-	"raccounting/internal/port"
 	"raccounting/internal/storage/model"
 )
 
@@ -66,7 +65,7 @@ func (s *Storage) FindAccountByID(ctx context.Context, id uint64) (model.Account
 
 // CreateAccount inserts an account row and returns its new id. A negative opening balance comes
 // back wrapped in storageError.InsufficientBalanceError (accounts.balance has CHECK (balance >= 0)).
-func (s *Storage) CreateAccount(ctx context.Context, req port.AccountCreateRequest) (uint64, error) {
+func (s *Storage) CreateAccount(ctx context.Context, req model.AccountCreateRequest) (uint64, error) {
 	id, err := s.insertReturningID(ctx,
 		`INSERT INTO accounts (name, type, currency, balance) VALUES ($1, $2, $3, $4) RETURNING id`,
 		req.Name, uint8(req.Type), req.CurrencyCode, req.Balance,
@@ -80,7 +79,7 @@ func (s *Storage) CreateAccount(ctx context.Context, req port.AccountCreateReque
 
 // UpdateAccount changes name/type/currency/status, returning the full updated row.
 func (s *Storage) UpdateAccount(
-	ctx context.Context, req port.AccountUpdateRequest,
+	ctx context.Context, req model.AccountUpdateRequest,
 ) (model.Account, bool, error) {
 	res, err := s.DB.ExecContext(ctx,
 		`UPDATE accounts SET name = $1, type = $2, currency = $3, status = $4, updated_at = CURRENT_TIMESTAMP

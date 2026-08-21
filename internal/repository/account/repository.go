@@ -20,29 +20,20 @@ import (
 type Storage interface {
 	ListAccounts(ctx context.Context) ([]model.Account, error)
 	// FindAccountByID returns sql.ErrNoRows when no account with this id exists.
-	FindAccountByID(
-		ctx context.Context,
-		id uint64,
-	) (model.Account, error)
+	FindAccountByID(ctx context.Context, id uint64) (model.Account, error)
 	// CreateAccount inserts an account row and returns its new id. A negative balance comes back
 	// wrapped in storageError.InsufficientBalanceError.
-	CreateAccount(
-		ctx context.Context,
-		req port.AccountCreateRequest,
-	) (id uint64, err error)
+	CreateAccount(ctx context.Context, req model.AccountCreateRequest) (id uint64, err error)
 	// UpdateAccount changes name/type/currency/status, returning the full updated row. found is
 	// false if no account with this id exists.
 	UpdateAccount(
 		ctx context.Context,
-		req port.AccountUpdateRequest,
+		req model.AccountUpdateRequest,
 	) (row model.Account, found bool, err error)
 	// DeleteAccount removes an account row. found is false if no account with this id existed. A
 	// FOREIGN KEY violation (the account is still referenced by a transaction) comes back wrapped in
 	// storageError.ForeignKeyViolationError.
-	DeleteAccount(
-		ctx context.Context,
-		id uint64,
-	) (found bool, err error)
+	DeleteAccount(ctx context.Context, id uint64) (found bool, err error)
 }
 
 // Repository implements port.AccountRepository.
@@ -91,7 +82,12 @@ func (r *Repository) FindByID(ctx context.Context, id uint64) (entity.Account, e
 func (r *Repository) Create(
 	ctx context.Context, req port.AccountCreateRequest,
 ) (entity.Account, error) {
-	id, err := r.storage.CreateAccount(ctx, req)
+	id, err := r.storage.CreateAccount(ctx, model.AccountCreateRequest{
+		Name:         req.Name,
+		Type:         req.Type,
+		CurrencyCode: req.CurrencyCode,
+		Balance:      req.Balance,
+	})
 	if err != nil {
 		if errors.Is(err, storageError.InsufficientBalanceError) {
 			return entity.Account{}, &domainerror.ConflictError{}
@@ -115,7 +111,13 @@ func (r *Repository) Create(
 func (r *Repository) Update(
 	ctx context.Context, req port.AccountUpdateRequest,
 ) (entity.Account, error) {
-	row, found, err := r.storage.UpdateAccount(ctx, req)
+	row, found, err := r.storage.UpdateAccount(ctx, model.AccountUpdateRequest{
+		ID:           req.ID,
+		Name:         req.Name,
+		Type:         req.Type,
+		CurrencyCode: req.CurrencyCode,
+		Archived:     req.Archived,
+	})
 	if err != nil {
 		return entity.Account{}, err
 	}

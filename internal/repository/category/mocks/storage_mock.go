@@ -11,7 +11,6 @@ package mocks
 
 import (
 	context "context"
-	port "raccounting/internal/port"
 	model "raccounting/internal/storage/model"
 	reflect "reflect"
 
@@ -43,7 +42,7 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 }
 
 // CreateCategory mocks base method.
-func (m *MockStorage) CreateCategory(ctx context.Context, req port.CategoryCreateRequest) (uint64, error) {
+func (m *MockStorage) CreateCategory(ctx context.Context, req model.CategoryCreateRequest) (uint64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateCategory", ctx, req)
 	ret0, _ := ret[0].(uint64)
@@ -103,7 +102,7 @@ func (mr *MockStorageMockRecorder) ListCategories(ctx any) *gomock.Call {
 }
 
 // UpdateCategory mocks base method.
-func (m *MockStorage) UpdateCategory(ctx context.Context, req port.CategoryUpdateRequest) (model.Category, bool, error) {
+func (m *MockStorage) UpdateCategory(ctx context.Context, req model.CategoryUpdateRequest) (model.Category, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateCategory", ctx, req)
 	ret0, _ := ret[0].(model.Category)

@@ -19,27 +19,18 @@ import (
 type Storage interface {
 	ListCategories(ctx context.Context) ([]model.Category, error)
 	// ExistsCategory reports whether a category with this id exists.
-	ExistsCategory(
-		ctx context.Context,
-		id uint64,
-	) (bool, error)
-	CreateCategory(
-		ctx context.Context,
-		req port.CategoryCreateRequest,
-	) (id uint64, err error)
+	ExistsCategory(ctx context.Context, id uint64) (bool, error)
+	CreateCategory(ctx context.Context, req model.CategoryCreateRequest) (id uint64, err error)
 	// UpdateCategory changes name/color/status, returning the full updated row. found is false if
 	// no category with this id exists.
 	UpdateCategory(
 		ctx context.Context,
-		req port.CategoryUpdateRequest,
+		req model.CategoryUpdateRequest,
 	) (row model.Category, found bool, err error)
 	// DeleteCategory removes a category row. found is false if no category with this id existed. A
 	// FOREIGN KEY violation (the category is still referenced by a transaction) comes back wrapped
 	// in storageError.ForeignKeyViolationError.
-	DeleteCategory(
-		ctx context.Context,
-		id uint64,
-	) (found bool, err error)
+	DeleteCategory(ctx context.Context, id uint64) (found bool, err error)
 }
 
 // Repository implements port.CategoryRepository.
@@ -76,7 +67,11 @@ func (r *Repository) Exists(ctx context.Context, id uint64) (bool, error) {
 func (r *Repository) Create(
 	ctx context.Context, req port.CategoryCreateRequest,
 ) (entity.Category, error) {
-	id, err := r.storage.CreateCategory(ctx, req)
+	id, err := r.storage.CreateCategory(ctx, model.CategoryCreateRequest{
+		Name:  req.Name,
+		Type:  req.Type,
+		Color: req.Color,
+	})
 	if err != nil {
 		return entity.Category{}, err
 	}
@@ -95,7 +90,12 @@ func (r *Repository) Create(
 func (r *Repository) Update(
 	ctx context.Context, req port.CategoryUpdateRequest,
 ) (entity.Category, error) {
-	row, found, err := r.storage.UpdateCategory(ctx, req)
+	row, found, err := r.storage.UpdateCategory(ctx, model.CategoryUpdateRequest{
+		ID:       req.ID,
+		Name:     req.Name,
+		Color:    req.Color,
+		Archived: req.Archived,
+	})
 	if err != nil {
 		return entity.Category{}, err
 	}

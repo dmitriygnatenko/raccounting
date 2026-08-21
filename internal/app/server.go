@@ -35,6 +35,7 @@ import (
 	transactionDelete "raccounting/internal/domain/usecase/transaction/delete"
 	transactionList "raccounting/internal/domain/usecase/transaction/list"
 	transactionUpdate "raccounting/internal/domain/usecase/transaction/update"
+	transactionUsage "raccounting/internal/domain/usecase/transaction/usage"
 
 	transferCreate "raccounting/internal/domain/usecase/transfer/create"
 	transferDelete "raccounting/internal/domain/usecase/transfer/delete"
@@ -99,6 +100,7 @@ func newServer(repos repositories, svcs services, cookieSecure bool) *httpAPI.Se
 			),
 			Delete: transactionDelete.New(repos.Transactions),
 			List:   transactionList.New(repos.Transactions),
+			Usage:  transactionUsage.New(repos.Transactions),
 		},
 		Transfers: httpAPI.TransferUseCases{
 			Create: transferCreate.New(repos.Transactions, repos.Accounts),

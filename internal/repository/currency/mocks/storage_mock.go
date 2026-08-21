@@ -11,7 +11,6 @@ package mocks
 
 import (
 	context "context"
-	port "raccounting/internal/port"
 	model "raccounting/internal/storage/model"
 	reflect "reflect"
 
@@ -43,7 +42,7 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 }
 
 // CreateCurrency mocks base method.
-func (m *MockStorage) CreateCurrency(ctx context.Context, req port.CurrencyCreateRequest) error {
+func (m *MockStorage) CreateCurrency(ctx context.Context, req model.CurrencyCreateRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateCurrency", ctx, req)
 	ret0, _ := ret[0].(error)
@@ -102,7 +101,7 @@ func (mr *MockStorageMockRecorder) ListCurrencies(ctx any) *gomock.Call {
 }
 
 // UpdateCurrency mocks base method.
-func (m *MockStorage) UpdateCurrency(ctx context.Context, req port.CurrencyUpdateRequest) (model.Currency, bool, error) {
+func (m *MockStorage) UpdateCurrency(ctx context.Context, req model.CurrencyUpdateRequest) (model.Currency, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateCurrency", ctx, req)
 	ret0, _ := ret[0].(model.Currency)

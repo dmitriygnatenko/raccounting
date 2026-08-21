@@ -48,6 +48,16 @@ func (f *fakeTransactionRepository) List(context.Context) ([]entity.Transaction,
 	panic("not stubbed")
 }
 
+func (f *fakeTransactionRepository) ListFiltered(
+	context.Context, port.TransactionListFilter,
+) (port.TransactionListResult, error) {
+	panic("not stubbed")
+}
+
+func (f *fakeTransactionRepository) Usage(context.Context) (port.TransactionUsage, error) {
+	panic("not stubbed")
+}
+
 func (f *fakeTransactionRepository) FindByID(context.Context, uint64) (entity.Transaction, error) {
 	panic("not stubbed")
 }

@@ -3,7 +3,7 @@ window.App = window.App || {};
 App.ReportsView = {
   components: { 'donut-chart': App.DonutChart, 'line-chart': App.LineChart, 'skeleton-block': App.SkeletonBlock },
   template: `
-    <div v-if="finance.state.loading" class="space-y-4">
+    <div v-if="finance.state.loading || loading" class="space-y-4">
       <skeleton-block class="h-12" />
       <skeleton-block class="h-96" />
     </div>
@@ -155,12 +155,15 @@ App.ReportsView = {
         { value: 'month', label: 'Этот месяц' },
         { value: 'lastMonth', label: 'Прошлый месяц' },
       ],
+      // Each bounded to only what it needs (see loadPeriodTransactions/loadBalanceHistory/
+      // loadBudgetTransactions below) rather than pulling the whole transaction history.
+      periodTransactions: [],
+      balanceTransactions: [],
+      budgetTransactions: [],
+      loading: true,
     }
   },
   computed: {
-    periodTransactions() {
-      return this.finance.state.transactions.filter((t) => this.inPeriod(t.date, this.period, this.dateFrom, this.dateTo))
-    },
     summary() {
       const nonTransfer = this.periodTransactions.filter((t) => t.type !== App.TransactionType.TRANSFER)
       const income = nonTransfer.filter((t) => t.amount > 0).reduce((s, t) => s + this.finance.amountInBase(t), 0)
@@ -185,12 +188,8 @@ App.ReportsView = {
       return this.categoryBreakdown.reduce((s, c) => s + c.value, 0)
     },
     balanceHistory() {
-      const relevant = this.finance.state.transactions
-        .slice()
-        .sort((a, b) => (a.date < b.date ? -1 : 1))
-
       const byDate = new Map()
-      for (const t of relevant) byDate.set(t.date, (byDate.get(t.date) ?? 0) + this.finance.amountInBase(t))
+      for (const t of this.balanceTransactions) byDate.set(t.date, (byDate.get(t.date) ?? 0) + this.finance.amountInBase(t))
 
       const dates = [...byDate.keys()].sort()
       if (!dates.length) return []
@@ -203,10 +202,7 @@ App.ReportsView = {
       }
       points.reverse()
 
-      const cutoff = new Date()
-      cutoff.setDate(cutoff.getDate() - 30)
-      const cutoffStr = cutoff.toISOString().slice(0, 10)
-      return points.filter((p) => p.date >= cutoffStr)
+      return points
     },
     balanceLabels() {
       return this.balanceHistory.map((p) => new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'short' }).format(new Date(p.date)))
@@ -221,13 +217,10 @@ App.ReportsView = {
       return `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`
     },
     budgetRows() {
-      const target = this.budgetTargetDate
       const monthKey = this.budgetMonthKey
       const spentByCategory = new Map()
-      for (const t of this.finance.state.transactions) {
+      for (const t of this.budgetTransactions) {
         if (t.amount >= 0 || t.type === App.TransactionType.TRANSFER) continue
-        const d = new Date(t.date)
-        if (d.getFullYear() !== target.getFullYear() || d.getMonth() !== target.getMonth()) continue
         const key = t.categoryId ?? 'other-expense'
         spentByCategory.set(key, (spentByCategory.get(key) ?? 0) + Math.abs(this.finance.amountInBase(t)))
       }
@@ -248,22 +241,40 @@ App.ReportsView = {
         .sort((a, b) => b.spent - a.spent)
     },
   },
+  watch: {
+    period() { this.loadPeriodTransactions() },
+    dateFrom() { if (this.period === 'custom') this.loadPeriodTransactions() },
+    dateTo() { if (this.period === 'custom') this.loadPeriodTransactions() },
+    budgetPeriod() { this.loadBudgetTransactions() },
+    'finance.state.transactionsVersion'() {
+      this.loadPeriodTransactions()
+      this.loadBalanceHistory()
+      this.loadBudgetTransactions()
+    },
+  },
+  async mounted() {
+    this.loading = true
+    try {
+      await Promise.all([this.loadPeriodTransactions(), this.loadBalanceHistory(), this.loadBudgetTransactions()])
+    } finally {
+      this.loading = false
+    }
+  },
   methods: {
-    inPeriod(dateStr, p, from, to) {
-      if (p === 'all') return true
-      if (p === 'custom') {
-        if (from && dateStr < from) return false
-        if (to && dateStr > to) return false
-        return true
-      }
-      const d = new Date(dateStr)
-      const now = new Date()
-      if (p === 'month') return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
-      if (p === 'lastMonth') {
-        const last = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-        return d.getFullYear() === last.getFullYear() && d.getMonth() === last.getMonth()
-      }
-      return d.getFullYear() === now.getFullYear()
+    async loadPeriodTransactions() {
+      const { dateFrom, dateTo } = App.periodToDateRange(this.period, this.dateFrom, this.dateTo)
+      this.periodTransactions = await App.api.getAllTransactions({ dateFrom, dateTo })
+    },
+    async loadBalanceHistory() {
+      const cutoff = new Date()
+      cutoff.setDate(cutoff.getDate() - 30)
+      this.balanceTransactions = await App.api.getAllTransactions({ dateFrom: App.dateStr(cutoff), dateTo: App.dateStr(new Date()) })
+    },
+    async loadBudgetTransactions() {
+      const target = this.budgetTargetDate
+      const dateFrom = App.dateStr(new Date(target.getFullYear(), target.getMonth(), 1))
+      const dateTo = App.dateStr(new Date(target.getFullYear(), target.getMonth() + 1, 0))
+      this.budgetTransactions = await App.api.getAllTransactions({ dateFrom, dateTo, type: App.TransactionType.EXPENSE })
     },
   },
 }

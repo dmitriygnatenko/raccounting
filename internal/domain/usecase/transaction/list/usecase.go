@@ -1,5 +1,6 @@
-// Package list is the ListTransactions use case: it returns every transaction (including transfer
-// legs) belonging to the signed-in user.
+// Package list is the ListTransactions use case: it returns one page of transactions belonging to
+// the signed-in user, matching an optional date range and set of filters (account, category, tag,
+// type, memo/category-name search).
 package list
 
 import (
@@ -25,18 +26,45 @@ func New(
 	}
 }
 
-// Execute returns every transaction.
-func (uc *UseCase) Execute(ctx context.Context) (Output, error) {
-	transactions, err := uc.transactionRepository.List(ctx)
+// Execute returns one page of transactions matching input.
+func (uc *UseCase) Execute(ctx context.Context, input Input) (Output, error) {
+	input = input.normalize()
+
+	result, err := uc.transactionRepository.ListFiltered(ctx, port.TransactionListFilter{
+		DateFrom:   input.DateFrom,
+		DateTo:     input.DateTo,
+		AccountID:  input.AccountID,
+		CategoryID: input.CategoryID,
+		TagID:      input.TagID,
+		Type:       input.Type,
+		Search:     input.Search,
+		Page:       input.Page,
+		PageSize:   input.PageSize,
+	})
 	if err != nil {
 		slog.ErrorContext(ctx, "list transactions: load", "error", err)
 
 		return Output{}, errors.New("Failed to load transactions")
 	}
 
+	transactions := result.Transactions
 	if transactions == nil {
 		transactions = []entity.Transaction{}
 	}
 
-	return Output{Transactions: transactions}, nil
+	sums := result.SumsByCurrency
+	if sums == nil {
+		sums = map[string]int64{}
+	}
+
+	totalPages := max((result.TotalCount+input.PageSize-1)/input.PageSize, 1)
+
+	return Output{
+		Transactions:   transactions,
+		Page:           input.Page,
+		PageSize:       input.PageSize,
+		TotalCount:     result.TotalCount,
+		TotalPages:     totalPages,
+		SumsByCurrency: sums,
+	}, nil
 }

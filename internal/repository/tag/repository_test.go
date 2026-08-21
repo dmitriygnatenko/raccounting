@@ -162,6 +162,7 @@ func TestRepository_Create(t *testing.T) {
 		Name:  fakeName(),
 		Color: fakeColor(),
 	}
+	storageReq := model.TagCreateRequest{Name: req.Name, Color: req.Color}
 
 	tests := []struct {
 		name         string
@@ -173,7 +174,7 @@ func TestRepository_Create(t *testing.T) {
 			name: "stores the tag and returns it",
 			mock: func(m *mocks.MockStorage) entity.Tag {
 				id := fakeID()
-				m.EXPECT().CreateTag(context.Background(), req).Return(id, nil)
+				m.EXPECT().CreateTag(context.Background(), storageReq).Return(id, nil)
 
 				return entity.Tag{ID: id, Name: req.Name, Color: req.Color}
 			},
@@ -183,7 +184,7 @@ func TestRepository_Create(t *testing.T) {
 		{
 			name: "a name collision becomes a message-less ConflictError",
 			mock: func(m *mocks.MockStorage) entity.Tag {
-				m.EXPECT().CreateTag(context.Background(), req).
+				m.EXPECT().CreateTag(context.Background(), storageReq).
 					Return(uint64(0), storageError.UniqueViolationError)
 
 				return entity.Tag{}
@@ -198,7 +199,7 @@ func TestRepository_Create(t *testing.T) {
 		{
 			name: "any other storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Tag {
-				m.EXPECT().CreateTag(context.Background(), req).Return(uint64(0), errStub)
+				m.EXPECT().CreateTag(context.Background(), storageReq).Return(uint64(0), errStub)
 
 				return entity.Tag{}
 			},
@@ -231,6 +232,7 @@ func TestRepository_Update(t *testing.T) {
 		Name:  fakeName(),
 		Color: fakeColor(),
 	}
+	storageReq := model.TagUpdateRequest{ID: req.ID, Name: req.Name, Color: req.Color}
 
 	tests := []struct {
 		name         string
@@ -243,7 +245,7 @@ func TestRepository_Update(t *testing.T) {
 			mock: func(m *mocks.MockStorage) entity.Tag {
 				row := fakeTagModel()
 				row.ID = req.ID
-				m.EXPECT().UpdateTag(context.Background(), req).Return(row, true, nil)
+				m.EXPECT().UpdateTag(context.Background(), storageReq).Return(row, true, nil)
 
 				return row.ToEntity()
 			},
@@ -253,7 +255,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "an unknown id becomes a message-less NotFoundError",
 			mock: func(m *mocks.MockStorage) entity.Tag {
-				m.EXPECT().UpdateTag(context.Background(), req).Return(model.Tag{}, false, nil)
+				m.EXPECT().UpdateTag(context.Background(), storageReq).Return(model.Tag{}, false, nil)
 
 				return entity.Tag{}
 			},
@@ -267,7 +269,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "a name collision becomes a message-less ConflictError",
 			mock: func(m *mocks.MockStorage) entity.Tag {
-				m.EXPECT().UpdateTag(context.Background(), req).
+				m.EXPECT().UpdateTag(context.Background(), storageReq).
 					Return(model.Tag{}, false, storageError.UniqueViolationError)
 
 				return entity.Tag{}
@@ -282,7 +284,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "any other storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Tag {
-				m.EXPECT().UpdateTag(context.Background(), req).Return(model.Tag{}, false, errStub)
+				m.EXPECT().UpdateTag(context.Background(), storageReq).Return(model.Tag{}, false, errStub)
 
 				return entity.Tag{}
 			},

@@ -19,29 +19,20 @@ import (
 type Storage interface {
 	ListCurrencies(ctx context.Context) ([]model.Currency, error)
 	// ExistsCurrency reports whether a currency with this code exists.
-	ExistsCurrency(
-		ctx context.Context,
-		code string,
-	) (bool, error)
+	ExistsCurrency(ctx context.Context, code string) (bool, error)
 	// CreateCurrency inserts a currency row. A taken code comes back wrapped in
 	// storageError.UniqueViolationError.
-	CreateCurrency(
-		ctx context.Context,
-		req port.CurrencyCreateRequest,
-	) error
+	CreateCurrency(ctx context.Context, req model.CurrencyCreateRequest) error
 	// UpdateCurrency changes symbol/name/rate/default/archived, returning the full updated row.
 	// found is false if no currency with this code exists.
 	UpdateCurrency(
 		ctx context.Context,
-		req port.CurrencyUpdateRequest,
+		req model.CurrencyUpdateRequest,
 	) (row model.Currency, found bool, err error)
 	// DeleteCurrency removes a currency row. found is false if no currency with this code existed. A
 	// FOREIGN KEY violation (the currency is still referenced by an account) comes back wrapped in
 	// storageError.ForeignKeyViolationError.
-	DeleteCurrency(
-		ctx context.Context,
-		code string,
-	) (found bool, err error)
+	DeleteCurrency(ctx context.Context, code string) (found bool, err error)
 }
 
 // Repository implements port.CurrencyRepository.
@@ -79,7 +70,13 @@ func (r *Repository) Exists(ctx context.Context, code string) (bool, error) {
 func (r *Repository) Create(
 	ctx context.Context, req port.CurrencyCreateRequest,
 ) (entity.Currency, error) {
-	if err := r.storage.CreateCurrency(ctx, req); err != nil {
+	if err := r.storage.CreateCurrency(ctx, model.CurrencyCreateRequest{
+		Code:    req.Code,
+		Symbol:  req.Symbol,
+		Name:    req.Name,
+		Rate:    req.Rate,
+		Default: req.Default,
+	}); err != nil {
 		if errors.Is(err, storageError.UniqueViolationError) {
 			return entity.Currency{}, &domainerror.ConflictError{}
 		}
@@ -102,7 +99,14 @@ func (r *Repository) Create(
 func (r *Repository) Update(
 	ctx context.Context, req port.CurrencyUpdateRequest,
 ) (entity.Currency, error) {
-	row, found, err := r.storage.UpdateCurrency(ctx, req)
+	row, found, err := r.storage.UpdateCurrency(ctx, model.CurrencyUpdateRequest{
+		Code:     req.Code,
+		Symbol:   req.Symbol,
+		Name:     req.Name,
+		Rate:     req.Rate,
+		Default:  req.Default,
+		Archived: req.Archived,
+	})
 	if err != nil {
 		return entity.Currency{}, err
 	}

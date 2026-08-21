@@ -156,6 +156,7 @@ func TestRepository_Create(t *testing.T) {
 		Type:  entity.CategoryTypeExpense,
 		Color: fakeColor(),
 	}
+	storageReq := model.CategoryCreateRequest{Name: req.Name, Type: req.Type, Color: req.Color}
 
 	tests := []struct {
 		name         string
@@ -167,7 +168,7 @@ func TestRepository_Create(t *testing.T) {
 			name: "stores the category and returns it",
 			mock: func(m *mocks.MockStorage) entity.Category {
 				id := fakeID()
-				m.EXPECT().CreateCategory(context.Background(), req).Return(id, nil)
+				m.EXPECT().CreateCategory(context.Background(), storageReq).Return(id, nil)
 
 				return entity.Category{
 					ID:     id,
@@ -183,7 +184,7 @@ func TestRepository_Create(t *testing.T) {
 		{
 			name: "a storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Category {
-				m.EXPECT().CreateCategory(context.Background(), req).Return(uint64(0), errStub)
+				m.EXPECT().CreateCategory(context.Background(), storageReq).Return(uint64(0), errStub)
 
 				return entity.Category{}
 			},
@@ -216,6 +217,7 @@ func TestRepository_Update(t *testing.T) {
 		Color:    fakeColor(),
 		Archived: gofakeit.Bool(),
 	}
+	storageReq := model.CategoryUpdateRequest{ID: req.ID, Name: req.Name, Color: req.Color, Archived: req.Archived}
 
 	tests := []struct {
 		name         string
@@ -228,7 +230,7 @@ func TestRepository_Update(t *testing.T) {
 			mock: func(m *mocks.MockStorage) entity.Category {
 				row := fakeCategoryModel()
 				row.ID = req.ID
-				m.EXPECT().UpdateCategory(context.Background(), req).Return(row, true, nil)
+				m.EXPECT().UpdateCategory(context.Background(), storageReq).Return(row, true, nil)
 
 				return row.ToEntity()
 			},
@@ -238,7 +240,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "an unknown id becomes a message-less NotFoundError",
 			mock: func(m *mocks.MockStorage) entity.Category {
-				m.EXPECT().UpdateCategory(context.Background(), req).Return(model.Category{}, false, nil)
+				m.EXPECT().UpdateCategory(context.Background(), storageReq).Return(model.Category{}, false, nil)
 
 				return entity.Category{}
 			},
@@ -252,7 +254,7 @@ func TestRepository_Update(t *testing.T) {
 		{
 			name: "a storage error is propagated",
 			mock: func(m *mocks.MockStorage) entity.Category {
-				m.EXPECT().UpdateCategory(context.Background(), req).Return(model.Category{}, false, errStub)
+				m.EXPECT().UpdateCategory(context.Background(), storageReq).Return(model.Category{}, false, errStub)
 
 				return entity.Category{}
 			},
