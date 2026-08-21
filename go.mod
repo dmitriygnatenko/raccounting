@@ -3,6 +3,7 @@ module raccounting
 go 1.26
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/brianvoe/gofakeit/v7 v7.16.0
 	github.com/go-ozzo/ozzo-validation/v4 v4.4.1
 	github.com/go-sql-driver/mysql v1.10.0

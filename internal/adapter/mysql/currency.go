@@ -114,7 +114,9 @@ func (s *Storage) UpdateCurrency(
 	return row, true, nil
 }
 
-func updateCurrency(ctx context.Context, db dbtx, req model.CurrencyUpdateRequest) (model.Currency, bool, error) {
+func updateCurrency(
+	ctx context.Context, db dbtx, req model.CurrencyUpdateRequest,
+) (model.Currency, bool, error) {
 	res, err := db.ExecContext(ctx,
 		`UPDATE currencies SET symbol = ?, name = ?, rate = ?, is_default = ?, status = ?, updated_at = CURRENT_TIMESTAMP
 		 WHERE code = ?`,
