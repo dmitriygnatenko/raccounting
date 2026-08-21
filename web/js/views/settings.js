@@ -15,8 +15,8 @@ App.SettingsView = {
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'accounts' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'accounts'">{{ App.t('Карты и счета') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'currencies' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'currencies'">{{ App.t('Валюты') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'language' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'language'">{{ App.t('Язык') }}</button>
-        <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'account' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'account'">{{ App.t('Аккаунт') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'data' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'data'">{{ App.t('Данные') }}</button>
+        <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'account' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'account'">{{ App.t('Аккаунт') }}</button>
       </div>
 
       <div v-if="tab === 'accounts'" class="rounded-xl bg-white border border-ink-200 overflow-hidden">
