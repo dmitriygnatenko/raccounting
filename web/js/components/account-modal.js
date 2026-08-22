@@ -59,6 +59,9 @@ App.AccountModal = {
                 <button v-if="!ui.editingAccount.archived" type="button" :disabled="saving" :title="App.t('Скрыть из активных счетов, история операций сохранится')"
                   class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-ink-600 text-sm font-medium hover:bg-ink-50 cursor-pointer disabled:opacity-50"
                   @click="archive">{{ App.t('Деактивировать') }}</button>
+                <button v-else type="button" :disabled="saving" :title="App.t('Вернуть в активные счета')"
+                  class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-ink-600 text-sm font-medium hover:bg-ink-50 cursor-pointer disabled:opacity-50"
+                  @click="unarchive">{{ App.t('Активировать') }}</button>
                 <button v-if="!inUse" type="button" :disabled="saving" :title="App.t('Удалить счёт безвозвратно')"
                   class="flex-1 px-3 py-2.5 rounded-lg border border-ink-200 text-money-neg text-sm font-medium hover:bg-red-50 cursor-pointer disabled:opacity-50"
                   @click="remove">{{ App.t('Удалить') }}</button>
@@ -150,6 +153,16 @@ App.AccountModal = {
       this.saving = true
       try {
         await this.finance.archiveAccount(this.ui.editingAccount.id)
+        this.close()
+      } finally {
+        this.saving = false
+      }
+    },
+    async unarchive() {
+      if (!this.ui.editingAccount) return
+      this.saving = true
+      try {
+        await this.finance.unarchiveAccount(this.ui.editingAccount.id)
         this.close()
       } finally {
         this.saving = false

@@ -53,6 +53,9 @@ App.SettingsView = {
               <button v-if="!a.archived" class="p-2 rounded-lg text-ink-500 hover:bg-ink-100 cursor-pointer" :aria-label="App.t('Деактивировать')" :title="App.t('Скрыть из активных счетов, история операций сохранится')" @click="App.financeStore.archiveAccount(a.id)">
                 <app-icon name="archive" :size="16" />
               </button>
+              <button v-else class="p-2 rounded-lg text-ink-500 hover:bg-ink-100 cursor-pointer" :aria-label="App.t('Активировать')" :title="App.t('Вернуть в активные счета')" @click="App.financeStore.unarchiveAccount(a.id)">
+                <app-icon name="restore" :size="16" />
+              </button>
               <button v-if="!finance.isAccountInUse(a.id)" class="p-2 rounded-lg text-money-neg hover:bg-red-50 cursor-pointer" :aria-label="App.t('Удалить')" :title="App.t('Удалить счёт безвозвратно')" @click="App.financeStore.deleteAccount(a.id)">
                 <app-icon name="trash" :size="16" />
               </button>
