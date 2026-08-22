@@ -200,6 +200,12 @@ function createFinanceStore() {
     await updateAccount({ ...acc, archived: true })
   }
 
+  async function unarchiveAccount(id) {
+    const acc = accountById.value.get(id)
+    if (!acc) return
+    await updateAccount({ ...acc, archived: false })
+  }
+
   async function deleteAccount(id) {
     if (isAccountInUse(id)) return
     await App.api.deleteAccount(id)
@@ -338,6 +344,7 @@ function createFinanceStore() {
     updateAccount,
     isAccountInUse,
     archiveAccount,
+    unarchiveAccount,
     deleteAccount,
     addCurrency,
     updateCurrency,
