@@ -34,13 +34,7 @@ type tagJSON struct {
 }
 
 func (t Tag) MarshalJSON() ([]byte, error) {
-	return json.Marshal(tagJSON{
-		ID:        t.ID,
-		Name:      t.Name,
-		Color:     t.Color,
-		CreatedAt: t.CreatedAt,
-		UpdatedAt: t.UpdatedAt,
-	})
+	return json.Marshal(tagJSON(t))
 }
 
 // UnmarshalJSON is tagJSON's inverse — used to read a Tag back out of a Backup file (see
@@ -51,13 +45,7 @@ func (t *Tag) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	*t = Tag{
-		ID:        j.ID,
-		Name:      j.Name,
-		Color:     j.Color,
-		CreatedAt: j.CreatedAt,
-		UpdatedAt: j.UpdatedAt,
-	}
+	*t = Tag(j)
 
 	return nil
 }

@@ -40,6 +40,11 @@ func Run() error {
 		return fmt.Errorf("invalid app configuration: %w", err)
 	}
 
+	if !appCfg.CookieSecure {
+		slog.Warn("COOKIE_SECURE is false: the session cookie is sent without the Secure flag, " +
+			"so it can be intercepted over an unencrypted connection — set COOKIE_SECURE=true once served over HTTPS")
+	}
+
 	dbCfg, err := config.LoadDB()
 	if err != nil {
 		return fmt.Errorf("invalid DB configuration: %w", err)
