@@ -1,6 +1,9 @@
-.PHONY: run build tidy fmt vet test docker-up docker-down docker-restart docker-logs docker-ps
+.PHONY: run build tidy fmt vet lint install-deps test docker-up docker-down docker-restart docker-logs docker-ps
 
 BINARY := build/app/raccounting
+
+BIN_DIR := bin
+GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 
 help: ## Show list of commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -20,8 +23,14 @@ fmt: ## Format code
 vet: ## Static analysis
 	go vet ./...
 
+install-deps: ## Fetch the latest golangci-lint into ./bin (re-run any time to upgrade it)
+	GOBIN=$(CURDIR)/$(BIN_DIR) go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
 test: ## Run tests
 	go test ./...
+
+lint: $(GOLANGCI_LINT) ## Run golangci-lint from ./bin (fetched via install-deps on first use)
+	$(GOLANGCI_LINT) run ./...
 
 docker-up: ## Start docker (MariaDB) in background
 	docker compose up -d
