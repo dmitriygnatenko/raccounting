@@ -44,13 +44,25 @@ App.AccountsView = {
   },
   computed: {
     groups() {
+      const order = [
+        App.AccountType.CARD,
+        App.AccountType.ACCOUNT,
+        App.AccountType.SAVINGS,
+        App.AccountType.CASH,
+        App.AccountType.CREDIT_CARD,
+        App.AccountType.DEBT,
+        App.AccountType.VIRTUAL,
+      ]
       const map = new Map()
+      for (const type of order) {
+        map.set(App.accountTypeLabel[type], [])
+      }
       for (const a of this.finance.activeAccounts) {
         const label = App.accountTypeLabel[a.type] ?? 'Другое'
         if (!map.has(label)) map.set(label, [])
         map.get(label).push(a)
       }
-      return [...map.entries()]
+      return [...map.entries()].filter(([, accounts]) => accounts.length > 0)
     },
   },
 }

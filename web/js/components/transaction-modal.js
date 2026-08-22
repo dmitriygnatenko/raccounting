@@ -59,7 +59,7 @@ App.TransactionModal = {
                   <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t(form.direction === 'transfer' ? 'Со счёта' : 'Счёт') }}</label>
                   <select v-model="form.accountId" required
                     class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500">
-                    <option v-for="a in finance.state.accounts" :key="a.id" :value="a.id">{{ App.t(a.name) }}</option>
+                    <option v-for="a in accountOptions" :key="a.id" :value="a.id">{{ App.t(a.name) }}</option>
                   </select>
                 </div>
               </div>
@@ -172,6 +172,9 @@ App.TransactionModal = {
       const type = this.form.direction === 'expense' ? App.CategoryType.EXPENSE : App.CategoryType.INCOME
       return this.finance.state.categories.filter((c) => c.type === type && (!c.archived || c.id === this.form.categoryId))
     },
+    accountOptions() {
+      return this.finance.state.accounts.filter((a) => !a.archived || a.id === this.form.accountId)
+    },
     selectedTags() {
       return this.form.tagIds.map((id) => this.finance.tagById.get(id)).filter(Boolean)
     },
@@ -184,7 +187,7 @@ App.TransactionModal = {
         .slice(0, 8)
     },
     transferTargetOptions() {
-      return this.finance.state.accounts.filter((a) => a.id !== this.form.accountId)
+      return this.finance.state.accounts.filter((a) => a.id !== this.form.accountId && (!a.archived || a.id === this.form.toAccountId))
     },
     fromAccount() {
       return this.finance.accountById.get(this.form.accountId)
@@ -252,8 +255,9 @@ App.TransactionModal = {
         }
       } else {
         const storedAccountId = getStoredAccountId()
-        const storedAccount = this.finance.state.accounts.find((a) => String(a.id) === storedAccountId)
-        const defaultAccountId = storedAccount ? storedAccount.id : this.finance.state.accounts[0]?.id ?? ''
+        const activeAccounts = this.finance.state.accounts.filter((a) => !a.archived)
+        const storedAccount = activeAccounts.find((a) => String(a.id) === storedAccountId)
+        const defaultAccountId = storedAccount ? storedAccount.id : activeAccounts[0]?.id ?? ''
         this.form = {
           date: new Date().toISOString().slice(0, 10),
           accountId: defaultAccountId,
