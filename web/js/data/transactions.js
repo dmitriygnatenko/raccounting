@@ -9,3 +9,7 @@ App.TransactionType = {
   EXPENSE: 2,
   TRANSFER: 3,
 }
+
+// Must stay in sync with the backend's entity.MaxAmount — the largest magnitude accepted for a
+// transaction/transfer amount.
+App.MAX_AMOUNT = 10_000_000

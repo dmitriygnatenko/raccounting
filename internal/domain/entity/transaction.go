@@ -9,6 +9,10 @@ import (
 // MaxMemoLength is the maximum accepted length for Transaction.Memo.
 const MaxMemoLength = 1000
 
+// MaxAmount is the maximum accepted magnitude for a transaction/transfer Amount (and, for a
+// transfer, ToAmount) — 10,000,000 in the account's currency, unsigned.
+const MaxAmount = 10_000_000
+
 // DateLayout is the wire format for a transaction/transfer date ("YYYY-MM-DD") — no time-of-day,
 // matching the frontend's <input type="date">.
 const DateLayout = "2006-01-02"

@@ -28,10 +28,9 @@ func (i Input) Validate() error {
 	return validation.ValidateStruct(&i,
 		validation.Field(&i.FromAccountID, usecase.AccountIDRules()...),
 		validation.Field(&i.ToAccountID, usecase.AccountIDRules()...),
-		validation.Field(&i.Amount, validation.Min(1).Error(
-			"Transfer amount must be greater than zero")),
+		validation.Field(&i.Amount, usecase.TransferAmountRules()...),
 		validation.Field(&i.ToAmount, validation.When(i.ToAmount != nil,
-			validation.Min(int64(1)).Error("Transfer amount must be greater than zero"),
+			usecase.TransferAmountRules()...,
 		)),
 		validation.Field(&i.Date, usecase.DateRules()...),
 	)

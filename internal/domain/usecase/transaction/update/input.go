@@ -36,6 +36,7 @@ func (i Input) Validate() error {
 		),
 		validation.Field(&i.Memo, validation.Length(0, entity.MaxMemoLength).
 			Error("Memo must be at most 1000 characters")),
+		validation.Field(&i.Amount, usecase.AmountRules()...),
 		validation.Field(&i.Date, usecase.DateRules()...),
 	)
 }

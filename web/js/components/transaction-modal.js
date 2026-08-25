@@ -45,7 +45,7 @@ App.TransactionModal = {
 
               <div>
                 <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Сумма') }}</label>
-                <input v-model="form.amount" type="number" min="0" step="1" required placeholder="0"
+                <input v-model="form.amount" type="number" min="0" :max="App.MAX_AMOUNT" step="1" required placeholder="0"
                   class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
               </div>
 

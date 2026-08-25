@@ -173,6 +173,27 @@ func AccountIDRules() []validation.Rule {
 	}
 }
 
+// AmountRules is the ozzo-validation rule set for a signed transaction Amount field: nonzero, and
+// bounded to entity.MaxAmount in either direction.
+func AmountRules() []validation.Rule {
+	limitErr := fmt.Sprintf("Amount must be at most %d", entity.MaxAmount)
+
+	return []validation.Rule{
+		validation.Required.Error("Amount must not be zero"),
+		validation.Min(int64(-entity.MaxAmount)).Error(limitErr),
+		validation.Max(int64(entity.MaxAmount)).Error(limitErr),
+	}
+}
+
+// TransferAmountRules is the ozzo-validation rule set for an unsigned transfer Amount/ToAmount
+// field: must be positive, and bounded to entity.MaxAmount.
+func TransferAmountRules() []validation.Rule {
+	return []validation.Rule{
+		validation.Min(int64(1)).Error("Transfer amount must be greater than zero"),
+		validation.Max(int64(entity.MaxAmount)).Error(fmt.Sprintf("Transfer amount must be at most %d", entity.MaxAmount)),
+	}
+}
+
 // CategoryIDRules is the ozzo-validation rule set for a field referencing a category: it must be a
 // positive id.
 func CategoryIDRules() []validation.Rule {
