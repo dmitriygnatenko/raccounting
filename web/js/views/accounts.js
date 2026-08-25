@@ -62,6 +62,9 @@ App.AccountsView = {
         if (!map.has(label)) map.set(label, [])
         map.get(label).push(a)
       }
+      for (const accounts of map.values()) {
+        accounts.sort((a, b) => App.t(a.name).localeCompare(App.t(b.name), App.i18nStore.locale))
+      }
       return [...map.entries()].filter(([, accounts]) => accounts.length > 0)
     },
   },

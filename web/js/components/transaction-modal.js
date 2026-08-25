@@ -170,10 +170,14 @@ App.TransactionModal = {
     },
     categoryOptions() {
       const type = this.form.direction === 'expense' ? App.CategoryType.EXPENSE : App.CategoryType.INCOME
-      return this.finance.state.categories.filter((c) => c.type === type && (!c.archived || c.id === this.form.categoryId))
+      return this.finance.state.categories
+        .filter((c) => c.type === type && (!c.archived || c.id === this.form.categoryId))
+        .sort((a, b) => App.t(a.name).localeCompare(App.t(b.name), App.i18nStore.locale))
     },
     accountOptions() {
-      return this.finance.state.accounts.filter((a) => !a.archived || a.id === this.form.accountId)
+      return this.finance.state.accounts
+        .filter((a) => !a.archived || a.id === this.form.accountId)
+        .sort((a, b) => App.t(a.name).localeCompare(App.t(b.name), App.i18nStore.locale))
     },
     selectedTags() {
       return this.form.tagIds.map((id) => this.finance.tagById.get(id)).filter(Boolean)
@@ -187,7 +191,9 @@ App.TransactionModal = {
         .slice(0, 8)
     },
     transferTargetOptions() {
-      return this.finance.state.accounts.filter((a) => a.id !== this.form.accountId && (!a.archived || a.id === this.form.toAccountId))
+      return this.finance.state.accounts
+        .filter((a) => a.id !== this.form.accountId && (!a.archived || a.id === this.form.toAccountId))
+        .sort((a, b) => App.t(a.name).localeCompare(App.t(b.name), App.i18nStore.locale))
     },
     fromAccount() {
       return this.finance.accountById.get(this.form.accountId)
