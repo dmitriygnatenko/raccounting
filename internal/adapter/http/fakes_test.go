@@ -253,7 +253,7 @@ type fakeUserRepository struct {
 	updateUsernameFn     func(ctx context.Context, id uint64, username string) error
 	updatePasswordHashFn func(ctx context.Context, id uint64, hash string) error
 	getSettingsFn        func(ctx context.Context, id uint64) (entity.UserSettings, error)
-	updateSettingsFn     func(ctx context.Context, id uint64, language string) error
+	updateSettingsFn     func(ctx context.Context, id uint64, settings entity.UserSettings) error
 	countFn              func(ctx context.Context) (int, error)
 }
 
@@ -281,8 +281,8 @@ func (f *fakeUserRepository) GetSettings(ctx context.Context, id uint64) (entity
 	return f.getSettingsFn(ctx, id)
 }
 
-func (f *fakeUserRepository) UpdateSettings(ctx context.Context, id uint64, language string) error {
-	return f.updateSettingsFn(ctx, id, language)
+func (f *fakeUserRepository) UpdateSettings(ctx context.Context, id uint64, settings entity.UserSettings) error {
+	return f.updateSettingsFn(ctx, id, settings)
 }
 
 func (f *fakeUserRepository) Count(ctx context.Context) (int, error) {

@@ -132,17 +132,17 @@ func (mr *MockUserRepositoryMockRecorder) UpdatePasswordHash(ctx, id, hash any) 
 }
 
 // UpdateSettings mocks base method.
-func (m *MockUserRepository) UpdateSettings(ctx context.Context, id uint64, language string) error {
+func (m *MockUserRepository) UpdateSettings(ctx context.Context, id uint64, settings entity.UserSettings) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSettings", ctx, id, language)
+	ret := m.ctrl.Call(m, "UpdateSettings", ctx, id, settings)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateSettings indicates an expected call of UpdateSettings.
-func (mr *MockUserRepositoryMockRecorder) UpdateSettings(ctx, id, language any) *gomock.Call {
+func (mr *MockUserRepositoryMockRecorder) UpdateSettings(ctx, id, settings any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSettings", reflect.TypeOf((*MockUserRepository)(nil).UpdateSettings), ctx, id, language)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSettings", reflect.TypeOf((*MockUserRepository)(nil).UpdateSettings), ctx, id, settings)
 }
 
 // UpdateUsername mocks base method.

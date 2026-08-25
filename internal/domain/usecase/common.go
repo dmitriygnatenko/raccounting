@@ -216,6 +216,15 @@ func LanguageRules() []validation.Rule {
 	}
 }
 
+// ThemeRules is the ozzo-validation rule set for a UI theme field: required, and either "light" or
+// "dark".
+func ThemeRules() []validation.Rule {
+	return []validation.Rule{
+		validation.Required.Error("Please choose a theme"),
+		validation.In("light", "dark").Error("Theme must be \"light\" or \"dark\""),
+	}
+}
+
 // DedupeIDs drops zero values and duplicates from ids, preserving first-seen order — used to
 // normalize a transaction's tag id list before it's validated/persisted.
 func DedupeIDs(ids []uint64) []uint64 {

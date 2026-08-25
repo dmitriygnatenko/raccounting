@@ -25,6 +25,7 @@ func (s *Server) handleGetSettings(w http.ResponseWriter, r *http.Request) {
 
 type updateSettingsRequest struct {
 	Language string `json:"language"`
+	Theme    string `json:"theme"`
 }
 
 // handleUpdateSettings handles PATCH /api/settings.
@@ -46,6 +47,7 @@ func (s *Server) handleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		update.Input{
 			UserID:   current.ID,
 			Language: input.Language,
+			Theme:    input.Theme,
 		},
 	)
 	if err != nil {

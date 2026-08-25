@@ -394,12 +394,13 @@ func TestRepository_GetSettings(t *testing.T) {
 	}
 }
 
-// TestRepository_UpdateSettings covers wrapping the language into the storage settings shape.
+// TestRepository_UpdateSettings covers wrapping the language and theme into the storage settings
+// shape.
 func TestRepository_UpdateSettings(t *testing.T) {
 	t.Parallel()
 
 	id := fakeID()
-	lang := fakeLang()
+	settings := entity.UserSettings{Language: fakeLang(), Theme: "dark"}
 
 	tests := []struct {
 		name      string
@@ -407,10 +408,10 @@ func TestRepository_UpdateSettings(t *testing.T) {
 		assertErr func(t *testing.T, err error)
 	}{
 		{
-			name: "delegates to storage with the language wrapped in settings",
+			name: "delegates to storage with the language and theme wrapped in settings",
 			mock: func(m *mocks.MockStorage) {
 				m.EXPECT().
-					UpdateUserSettings(context.Background(), id, model.UserSettings{Language: lang}).
+					UpdateUserSettings(context.Background(), id, model.UserSettings{Language: settings.Language, Theme: settings.Theme}).
 					Return(nil)
 			},
 			assertErr: func(t *testing.T, err error) { require.NoError(t, err) },
@@ -419,7 +420,7 @@ func TestRepository_UpdateSettings(t *testing.T) {
 			name: "a storage error is propagated",
 			mock: func(m *mocks.MockStorage) {
 				m.EXPECT().
-					UpdateUserSettings(context.Background(), id, model.UserSettings{Language: lang}).
+					UpdateUserSettings(context.Background(), id, model.UserSettings{Language: settings.Language, Theme: settings.Theme}).
 					Return(errStub)
 			},
 			assertErr: func(t *testing.T, err error) { require.ErrorIs(t, err, errStub) },
@@ -433,7 +434,7 @@ func TestRepository_UpdateSettings(t *testing.T) {
 			r, m := newRepo(t)
 			tt.mock(m)
 
-			err := r.UpdateSettings(context.Background(), id, lang)
+			err := r.UpdateSettings(context.Background(), id, settings)
 			tt.assertErr(t, err)
 		})
 	}

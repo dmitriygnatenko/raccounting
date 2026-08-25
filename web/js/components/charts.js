@@ -1,7 +1,21 @@
 window.App = window.App || {};
 
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif"
-Chart.defaults.color = '#64748b'
+
+// Chart.js draws to a <canvas>, so its colors can't be themed with CSS — these helpers pick the
+// right ones from App.themeStore.theme instead, and every chart component below re-reads them
+// (via applyThemeColors) whenever that theme changes.
+function chartAxisColor() {
+  return '#94a3b8'
+}
+function chartGridColor() {
+  return App.themeStore.theme === 'dark' ? 'rgba(148, 163, 184, 0.12)' : '#f1f5f9'
+}
+function chartTooltipBg() {
+  return App.themeStore.theme === 'dark' ? '#020617' : '#0f172a'
+}
+
+Chart.defaults.color = chartAxisColor()
 
 // Shared y-axis tick formatter: plain numbers below 1000, "k" above it — avoids Chart.js's default
 // auto-scaling producing fractional-thousand ticks like "0.0001k" when every value is 0.
@@ -14,7 +28,7 @@ App.DonutChart = {
   props: { labels: Array, values: Array, colors: Array },
   template: `<canvas ref="canvas"></canvas>`,
   data() {
-    return { chart: null }
+    return { App, chart: null }
   },
   mounted() {
     // markRaw: Chart.js instances are deeply circular (canvas ↔ chart ↔ layout boxes) and mutate
@@ -30,7 +44,7 @@ App.DonutChart = {
         cutout: '68%',
         plugins: {
           legend: { display: false },
-          tooltip: { backgroundColor: '#0f172a', padding: 10, cornerRadius: 8 },
+          tooltip: { backgroundColor: chartTooltipBg(), padding: 10, cornerRadius: 8 },
         },
       },
     }))
@@ -51,6 +65,9 @@ App.DonutChart = {
     signature() {
       this.refresh()
     },
+    'App.themeStore.theme'() {
+      this.applyThemeColors()
+    },
   },
   methods: {
     buildData() {
@@ -64,6 +81,11 @@ App.DonutChart = {
       this.chart.data = this.buildData()
       this.chart.update()
     },
+    applyThemeColors() {
+      if (!this.chart) return
+      this.chart.options.plugins.tooltip.backgroundColor = chartTooltipBg()
+      this.chart.update()
+    },
   },
 }
 
@@ -71,7 +93,7 @@ App.BarChart = {
   props: { labels: Array, income: Array, expense: Array },
   template: `<canvas ref="canvas"></canvas>`,
   data() {
-    return { chart: null }
+    return { App, chart: null }
   },
   mounted() {
     // markRaw: Chart.js instances are deeply circular (canvas ↔ chart ↔ layout boxes) and mutate
@@ -88,7 +110,7 @@ App.BarChart = {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#0f172a',
+            backgroundColor: chartTooltipBg(),
             padding: 10,
             cornerRadius: 8,
             callbacks: {
@@ -97,11 +119,11 @@ App.BarChart = {
           },
         },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+          x: { grid: { display: false }, ticks: { color: chartAxisColor() } },
           y: {
             beginAtZero: true,
-            grid: { color: '#f1f5f9' },
-            ticks: { color: '#94a3b8', precision: 0, callback: formatAxisValue },
+            grid: { color: chartGridColor() },
+            ticks: { color: chartAxisColor(), precision: 0, callback: formatAxisValue },
           },
         },
       },
@@ -121,6 +143,9 @@ App.BarChart = {
     signature() {
       this.refresh()
     },
+    'App.themeStore.theme'() {
+      this.applyThemeColors()
+    },
   },
   methods: {
     buildData() {
@@ -137,6 +162,15 @@ App.BarChart = {
       this.chart.data = this.buildData()
       this.chart.update()
     },
+    applyThemeColors() {
+      if (!this.chart) return
+      const { scales, plugins } = this.chart.options
+      plugins.tooltip.backgroundColor = chartTooltipBg()
+      scales.x.ticks.color = chartAxisColor()
+      scales.y.ticks.color = chartAxisColor()
+      scales.y.grid.color = chartGridColor()
+      this.chart.update()
+    },
   },
 }
 
@@ -144,7 +178,7 @@ App.LineChart = {
   props: { labels: Array, values: Array },
   template: `<canvas ref="canvas"></canvas>`,
   data() {
-    return { chart: null }
+    return { App, chart: null }
   },
   mounted() {
     // markRaw: Chart.js instances are deeply circular (canvas ↔ chart ↔ layout boxes) and mutate
@@ -160,18 +194,18 @@ App.LineChart = {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#0f172a',
+            backgroundColor: chartTooltipBg(),
             padding: 10,
             cornerRadius: 8,
             callbacks: { label: (ctx) => `${Math.round(ctx.parsed.y).toLocaleString('ru-RU')} ₽` },
           },
         },
         scales: {
-          x: { grid: { display: false }, ticks: { color: '#94a3b8', maxTicksLimit: 8 } },
+          x: { grid: { display: false }, ticks: { color: chartAxisColor(), maxTicksLimit: 8 } },
           y: {
             beginAtZero: true,
-            grid: { color: '#f1f5f9' },
-            ticks: { color: '#94a3b8', precision: 0, callback: formatAxisValue },
+            grid: { color: chartGridColor() },
+            ticks: { color: chartAxisColor(), precision: 0, callback: formatAxisValue },
           },
         },
       },
@@ -190,6 +224,9 @@ App.LineChart = {
   watch: {
     signature() {
       this.refresh()
+    },
+    'App.themeStore.theme'() {
+      this.applyThemeColors()
     },
   },
   methods: {
@@ -220,6 +257,15 @@ App.LineChart = {
     refresh() {
       if (!this.chart) return
       this.chart.data = this.buildData()
+      this.chart.update()
+    },
+    applyThemeColors() {
+      if (!this.chart) return
+      const { scales, plugins } = this.chart.options
+      plugins.tooltip.backgroundColor = chartTooltipBg()
+      scales.x.ticks.color = chartAxisColor()
+      scales.y.ticks.color = chartAxisColor()
+      scales.y.grid.color = chartGridColor()
       this.chart.update()
     },
   },

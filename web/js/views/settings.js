@@ -15,6 +15,7 @@ App.SettingsView = {
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'accounts' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'accounts'">{{ App.t('Карты и счета') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'currencies' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'currencies'">{{ App.t('Валюты') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'language' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'language'">{{ App.t('Язык') }}</button>
+        <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'appearance' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'appearance'">{{ App.t('Оформление') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'data' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'data'">{{ App.t('Данные') }}</button>
         <button class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer shrink-0" :class="tab === 'account' ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'" @click="tab = 'account'">{{ App.t('Аккаунт') }}</button>
       </div>
@@ -202,6 +203,19 @@ App.SettingsView = {
           class="w-full sm:w-64 rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500">
           <option v-for="code in App.SUPPORTED_LOCALES" :key="code" :value="code">{{ App.LOCALE_LABELS[code] }}</option>
         </select>
+      </div>
+
+      <div v-if="tab === 'appearance'" class="rounded-xl bg-white border border-ink-200 p-4 md:p-5">
+        <h2 class="text-sm font-semibold text-ink-900 mb-1">{{ App.t('Тема оформления') }}</h2>
+        <p class="text-xs text-ink-400 mb-3">{{ App.t('Выберите светлую или тёмную тему интерфейса') }}</p>
+        <div class="flex rounded-lg bg-ink-100 p-1 w-fit text-sm font-medium">
+          <button v-for="th in App.SUPPORTED_THEMES" :key="th" type="button"
+            class="px-3.5 py-1.5 rounded-md transition-colors cursor-pointer"
+            :class="App.themeStore.theme === th ? 'bg-white shadow-sm text-ink-900' : 'text-ink-500'"
+            @click="App.authStore.changeTheme(th)">
+            {{ App.t(App.THEME_LABELS[th]) }}
+          </button>
+        </div>
       </div>
 
       <div v-if="tab === 'account'" class="rounded-xl bg-white border border-ink-200 p-4 md:p-5 max-w-md">

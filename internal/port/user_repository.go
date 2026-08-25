@@ -29,8 +29,8 @@ type UserRepository interface {
 	UpdateUsername(ctx context.Context, id uint64, username string) error
 	UpdatePasswordHash(ctx context.Context, id uint64, hash string) error
 	GetSettings(ctx context.Context, id uint64) (entity.UserSettings, error)
-	// UpdateSettings overwrites a user's saved UI language.
-	UpdateSettings(ctx context.Context, id uint64, language string) error
+	// UpdateSettings overwrites a user's saved UI settings (language, theme).
+	UpdateSettings(ctx context.Context, id uint64, settings entity.UserSettings) error
 	// Count returns the total number of users — used to decide whether to auto-provision the demo
 	// user.
 	Count(ctx context.Context) (int, error)

@@ -123,9 +123,12 @@ func (r *Repository) GetSettings(ctx context.Context, id uint64) (entity.UserSet
 	return m.ToEntity(), nil
 }
 
-// UpdateSettings overwrites a user's saved UI language.
-func (r *Repository) UpdateSettings(ctx context.Context, id uint64, language string) error {
-	return r.storage.UpdateUserSettings(ctx, id, model.UserSettings{Language: language})
+// UpdateSettings overwrites a user's saved UI settings (language, theme).
+func (r *Repository) UpdateSettings(ctx context.Context, id uint64, settings entity.UserSettings) error {
+	return r.storage.UpdateUserSettings(ctx, id, model.UserSettings{
+		Language: settings.Language,
+		Theme:    settings.Theme,
+	})
 }
 
 // Count returns the total number of users — used to decide whether to auto-provision on login.

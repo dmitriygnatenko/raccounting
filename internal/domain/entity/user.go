@@ -21,6 +21,7 @@ type User struct {
 
 type UserSettings struct {
 	Language string `json:"language,omitempty"`
+	Theme    string `json:"theme,omitempty"`
 }
 
 type PublicUser struct {

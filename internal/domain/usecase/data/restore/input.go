@@ -66,6 +66,12 @@ func (i Input) Validate() error {
 		}
 	}
 
+	if b.Settings.Theme != "" {
+		if err := validation.Validate(b.Settings.Theme, usecase.ThemeRules()...); err != nil {
+			return fmt.Errorf("Settings: %w", err)
+		}
+	}
+
 	return nil
 }
 

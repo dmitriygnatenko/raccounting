@@ -134,13 +134,18 @@ func (uc *UseCase) resolveUser(
 // response the caller builds from it is already up to date. It's best-effort: a failure here
 // shouldn't fail the login itself, just leave the language unsaved for next time.
 func (uc *UseCase) saveLanguage(ctx context.Context, user *entity.User, language string) {
-	if err := uc.userRepository.UpdateSettings(ctx, user.ID, language); err != nil {
+	settings := entity.UserSettings{
+		Language: language,
+		Theme:    user.Settings.Theme,
+	}
+
+	if err := uc.userRepository.UpdateSettings(ctx, user.ID, settings); err != nil {
 		slog.ErrorContext(ctx, "login: save language", "error", err)
 
 		return
 	}
 
-	user.Settings = entity.UserSettings{Language: language}
+	user.Settings = settings
 }
 
 // provisionUser creates the single account on the very first successful login.

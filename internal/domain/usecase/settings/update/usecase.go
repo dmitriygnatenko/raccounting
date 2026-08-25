@@ -1,5 +1,5 @@
-// Package update is the UpdateSettings use case: it changes the signed-in user's UI language
-// preference.
+// Package update is the UpdateSettings use case: it changes the signed-in user's UI settings
+// (language, theme).
 package update
 
 import (
@@ -22,7 +22,7 @@ func New(userRepository port.UserRepository) *UseCase {
 	return &UseCase{userRepository: userRepository}
 }
 
-// Execute changes the signed-in user's UI language preference.
+// Execute changes the signed-in user's UI settings (language, theme).
 func (uc *UseCase) Execute(ctx context.Context, input Input) (Output, error) {
 	if err := input.Validate(); err != nil {
 		slog.InfoContext(ctx, "update settings: validation", "error", err)
@@ -30,11 +30,13 @@ func (uc *UseCase) Execute(ctx context.Context, input Input) (Output, error) {
 		return Output{}, domainerror.ToValidationError(err)
 	}
 
-	if err := uc.userRepository.UpdateSettings(ctx, input.UserID, input.Language); err != nil {
+	settings := entity.UserSettings{Language: input.Language, Theme: input.Theme}
+
+	if err := uc.userRepository.UpdateSettings(ctx, input.UserID, settings); err != nil {
 		slog.ErrorContext(ctx, "update settings: save", "error", err)
 
 		return Output{}, errors.New("Failed to update settings")
 	}
 
-	return Output{Settings: entity.UserSettings{Language: input.Language}}, nil
+	return Output{Settings: settings}, nil
 }

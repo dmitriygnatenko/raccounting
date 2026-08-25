@@ -230,8 +230,8 @@ func (uc *UseCase) recreate(ctx context.Context, input Input) error {
 		}
 	}
 
-	if backup.Settings.Language != "" {
-		if err := uc.userRepository.UpdateSettings(ctx, input.UserID, backup.Settings.Language); err != nil {
+	if backup.Settings.Language != "" || backup.Settings.Theme != "" {
+		if err := uc.userRepository.UpdateSettings(ctx, input.UserID, backup.Settings); err != nil {
 			return fmt.Errorf("update settings: %w", err)
 		}
 	}

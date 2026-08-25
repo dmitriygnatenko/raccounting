@@ -20,7 +20,7 @@ type fakeUserRepository struct {
 	findByUsernameFn func(ctx context.Context, username string) (entity.User, error)
 	findByIDFn       func(ctx context.Context, id uint64) (entity.User, error)
 	createFn         func(ctx context.Context, req port.UserCreateRequest) (uint64, error)
-	updateSettingsFn func(ctx context.Context, id uint64, language string) error
+	updateSettingsFn func(ctx context.Context, id uint64, settings entity.UserSettings) error
 	countFn          func(ctx context.Context) (int, error)
 }
 
@@ -48,8 +48,8 @@ func (f *fakeUserRepository) GetSettings(context.Context, uint64) (entity.UserSe
 	panic("not stubbed")
 }
 
-func (f *fakeUserRepository) UpdateSettings(ctx context.Context, id uint64, language string) error {
-	return f.updateSettingsFn(ctx, id, language)
+func (f *fakeUserRepository) UpdateSettings(ctx context.Context, id uint64, settings entity.UserSettings) error {
+	return f.updateSettingsFn(ctx, id, settings)
 }
 
 func (f *fakeUserRepository) Count(ctx context.Context) (int, error) {
@@ -248,9 +248,9 @@ func TestUseCase_Execute(t *testing.T) {
 					return entity.User{ID: 7, Username: "admin", PasswordHash: "hashed"}, nil
 				}
 				d.hasher.compareFn = func(string, string) bool { return true }
-				d.user.updateSettingsFn = func(_ context.Context, id uint64, language string) error {
+				d.user.updateSettingsFn = func(_ context.Context, id uint64, settings entity.UserSettings) error {
 					require.Equal(t, uint64(7), id)
-					require.Equal(t, "fr", language)
+					require.Equal(t, "fr", settings.Language)
 					return nil
 				}
 				d.token.newTokenFn = func() (string, error) { return "tok-xyz", nil }
@@ -274,7 +274,7 @@ func TestUseCase_Execute(t *testing.T) {
 					}, nil
 				}
 				d.hasher.compareFn = func(string, string) bool { return true }
-				d.user.updateSettingsFn = func(context.Context, uint64, string) error {
+				d.user.updateSettingsFn = func(context.Context, uint64, entity.UserSettings) error {
 					t.Fatal("UpdateSettings should not be called when a language is already saved")
 					return nil
 				}

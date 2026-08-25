@@ -11,12 +11,14 @@ import (
 // UserSettings is the shape of the users.settings JSON column.
 type UserSettings struct {
 	Language string `json:"language,omitempty"`
+	Theme    string `json:"theme,omitempty"`
 }
 
 // ToEntity converts the stored column into a domain entity.UserSettings.
 func (m UserSettings) ToEntity() entity.UserSettings {
 	return entity.UserSettings{
 		Language: m.Language,
+		Theme:    m.Theme,
 	}
 }
 

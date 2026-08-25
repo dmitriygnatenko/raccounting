@@ -58,7 +58,22 @@ func TestHandleUpdateSettings(t *testing.T) {
 		mux, deps := newTestServer()
 		stubAuthenticated(deps, entity.User{ID: 1})
 
-		req := httptest.NewRequest(http.MethodPatch, "/api/settings", strings.NewReader(`{"language":""}`))
+		req := httptest.NewRequest(http.MethodPatch, "/api/settings", strings.NewReader(`{"language":"","theme":"light"}`))
+		req.AddCookie(authCookie())
+		rec := httptest.NewRecorder()
+
+		mux.ServeHTTP(rec, req)
+
+		require.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("blank theme fails validation with 400", func(t *testing.T) {
+		t.Parallel()
+
+		mux, deps := newTestServer()
+		stubAuthenticated(deps, entity.User{ID: 1})
+
+		req := httptest.NewRequest(http.MethodPatch, "/api/settings", strings.NewReader(`{"language":"fr","theme":""}`))
 		req.AddCookie(authCookie())
 		rec := httptest.NewRecorder()
 
@@ -72,19 +87,20 @@ func TestHandleUpdateSettings(t *testing.T) {
 
 		mux, deps := newTestServer()
 		stubAuthenticated(deps, entity.User{ID: 1})
-		deps.users.updateSettingsFn = func(_ context.Context, id uint64, language string) error {
+		deps.users.updateSettingsFn = func(_ context.Context, id uint64, settings entity.UserSettings) error {
 			require.Equal(t, uint64(1), id)
-			require.Equal(t, "fr", language)
+			require.Equal(t, "fr", settings.Language)
+			require.Equal(t, "dark", settings.Theme)
 			return nil
 		}
 
-		req := httptest.NewRequest(http.MethodPatch, "/api/settings", strings.NewReader(`{"language":"fr"}`))
+		req := httptest.NewRequest(http.MethodPatch, "/api/settings", strings.NewReader(`{"language":"fr","theme":"dark"}`))
 		req.AddCookie(authCookie())
 		rec := httptest.NewRecorder()
 
 		mux.ServeHTTP(rec, req)
 
 		require.Equal(t, http.StatusOK, rec.Code)
-		require.JSONEq(t, `{"language":"fr"}`, rec.Body.String())
+		require.JSONEq(t, `{"language":"fr","theme":"dark"}`, rec.Body.String())
 	})
 }

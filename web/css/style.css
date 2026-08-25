@@ -63,3 +63,135 @@ body {
     transform: translateY(12px) scale(0.98);
   }
 }
+
+/*
+ * Dark theme.
+ *
+ * Tailwind here runs as the in-browser CDN build: it scans the live DOM for class names and
+ * generates plain (non-variable) utility CSS on the fly, so templates use literal classes like
+ * `bg-white` / `text-ink-900` everywhere instead of CSS custom properties. Retrofitting every
+ * template with `dark:` variants would mean touching every view/component file. Instead, this
+ * block re-declares the same utility selectors Tailwind generates, scoped under `html.dark` — its
+ * two-class specificity beats Tailwind's single-class rules regardless of injection order, so it
+ * doesn't need `!important`. App.setTheme (js/data/theme.js) toggles the `dark` class on <html>.
+ */
+html.dark {
+  color-scheme: dark;
+
+  --rc-bg: #0b1120;
+  --rc-surface: #141d2e;
+  --rc-ink-50: #1a2436;
+  --rc-ink-100: #212c42;
+  --rc-ink-200: #2a374f;
+  --rc-ink-300: #35435f;
+  --rc-border: #29354c;
+  --rc-brand-bg: #16233d;
+  --rc-ring: #e7edf5;
+  --rc-red-hover: rgba(220, 38, 38, 0.18);
+
+  --rc-text-950: #f8fafc;
+  --rc-text-900: #e7edf5;
+  --rc-text-700: #cbd5e1;
+  --rc-text-600: #a9b8cc;
+  --rc-text-500: #94a3b8;
+  --rc-text-400: #6b7d95;
+  --rc-text-300: #47536a;
+}
+
+html.dark body {
+  background: var(--rc-bg);
+}
+html.dark ::selection {
+  background: rgba(59, 130, 246, 0.35);
+}
+html.dark * {
+  scrollbar-color: var(--rc-ink-300) transparent;
+}
+html.dark *::-webkit-scrollbar-thumb {
+  background: var(--rc-ink-300);
+}
+
+/* Surfaces */
+html.dark .bg-white,
+html.dark .bg-white\/80 {
+  background-color: var(--rc-surface);
+}
+html.dark .bg-ink-50.min-h-screen {
+  background-color: var(--rc-bg);
+}
+html.dark .bg-ink-50 {
+  background-color: var(--rc-ink-50);
+}
+html.dark .bg-ink-50\/40 {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+html.dark .bg-ink-50\/60,
+html.dark .hover\:bg-ink-50\/60:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+html.dark .hover\:bg-ink-50:hover,
+html.dark .active\:bg-ink-50:active,
+html.dark .disabled\:bg-ink-50:disabled {
+  background-color: var(--rc-ink-50);
+}
+html.dark .bg-ink-100,
+html.dark .hover\:bg-ink-100:hover {
+  background-color: var(--rc-ink-100);
+}
+html.dark .bg-ink-200 {
+  background-color: var(--rc-ink-200);
+}
+html.dark .bg-ink-300,
+html.dark .hover\:bg-ink-300:hover {
+  background-color: var(--rc-ink-300);
+}
+html.dark .bg-brand-100 {
+  background-color: var(--rc-brand-bg);
+}
+html.dark .hover\:bg-red-50:hover {
+  background-color: var(--rc-red-hover);
+}
+
+/* Borders */
+html.dark .border-ink-100,
+html.dark .border-ink-200,
+html.dark .divide-ink-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--rc-border);
+}
+html.dark .ring-ink-900 {
+  --tw-ring-color: var(--rc-ring);
+}
+
+/* Text */
+html.dark .text-ink-950 {
+  color: var(--rc-text-950);
+}
+html.dark .text-ink-900,
+html.dark .hover\:text-ink-900:hover {
+  color: var(--rc-text-900);
+}
+html.dark .text-ink-700 {
+  color: var(--rc-text-700);
+}
+html.dark .text-ink-600 {
+  color: var(--rc-text-600);
+}
+html.dark .text-ink-500 {
+  color: var(--rc-text-500);
+}
+html.dark .text-ink-400,
+html.dark .disabled\:text-ink-400:disabled {
+  color: var(--rc-text-400);
+}
+html.dark .text-ink-300 {
+  color: var(--rc-text-300);
+}
+
+/* Form controls don't carry an explicit background/text color in the markup, so they fall back to
+   the browser's (light) UA styling unless told otherwise here. */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: var(--rc-surface);
+  color: var(--rc-text-900);
+}

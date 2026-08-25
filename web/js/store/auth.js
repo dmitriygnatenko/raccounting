@@ -22,10 +22,17 @@ function applyUserLanguage(user) {
   if (language) App.setLocale(language)
 }
 
+// Same idea as applyUserLanguage, for the saved UI theme.
+function applyUserTheme(user) {
+  const theme = user?.settings?.theme
+  if (theme) App.setTheme(theme)
+}
+
 async function restoreSession() {
   try {
     state.user = await App.api.me()
     applyUserLanguage(state.user)
+    applyUserTheme(state.user)
   } catch {
     state.user = null
   } finally {
@@ -37,6 +44,7 @@ async function login(username, password) {
   const user = await App.api.login({ username, password, language: App.i18nStore.locale })
   state.user = user
   applyUserLanguage(user)
+  applyUserTheme(user)
   return user
 }
 
@@ -53,11 +61,19 @@ async function changeCredentials(currentPassword, newUsername, newPassword) {
 
 // Changing the language in-app persists it to the backend first, then applies whatever it echoes
 // back — the same round-trip login/restoreSession use, rather than optimistically switching the UI
-// before the save is confirmed.
+// before the save is confirmed. UpdateSettings overwrites the whole settings blob (see the Go
+// backend), so the current theme rides along unchanged.
 async function changeLanguage(language) {
-  const settings = await App.api.updateSettings({ language })
+  const settings = await App.api.updateSettings({ language, theme: App.themeStore.theme })
   if (state.user) state.user = { ...state.user, settings }
   applyUserLanguage({ settings })
+}
+
+// Same round-trip as changeLanguage, for the theme.
+async function changeTheme(theme) {
+  const settings = await App.api.updateSettings({ language: App.i18nStore.locale, theme })
+  if (state.user) state.user = { ...state.user, settings }
+  applyUserTheme({ settings })
 }
 
 App.authStore = {
@@ -70,6 +86,7 @@ App.authStore = {
   logout,
   changeCredentials,
   changeLanguage,
+  changeTheme,
   restoreSession,
 }
 
