@@ -9,7 +9,6 @@ App.DashboardView = {
   components: {
     'skeleton-block': App.SkeletonBlock,
     'donut-chart': App.DonutChart,
-    'bar-chart': App.BarChart,
   },
   template: `
     <div v-if="finance.state.loading || loading" class="space-y-5">
@@ -44,16 +43,34 @@ App.DashboardView = {
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="rounded-xl bg-white border border-ink-200 p-4 md:p-5 lg:col-span-2">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="font-semibold text-ink-950 text-sm">{{ App.t('Доходы и расходы по месяцам') }}</h2>
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-ink-950 text-sm">{{ App.t('Последние операции') }}</h2>
+            <button type="button" class="text-xs font-medium text-ink-500 hover:text-ink-800 cursor-pointer" @click="App.router.push('/transactions')">{{ App.t('Все операции') }}</button>
           </div>
-          <div class="h-64">
-            <bar-chart :labels="monthlyTrend.map(m => m.label)" :income="monthlyTrend.map(m => m.income)" :expense="monthlyTrend.map(m => m.expense)" />
-          </div>
-          <div class="flex items-center gap-4 mt-3 text-xs text-ink-500">
-            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-[#86efac]"></span>{{ App.t('Доходы') }}</span>
-            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-sm bg-[#fca5a5]"></span>{{ App.t('Расходы') }}</span>
-          </div>
+          <ul v-if="recentTransactions.length" class="divide-y divide-ink-100 -mx-1">
+            <li v-for="t in recentTransactions" :key="t.id">
+              <button type="button" class="w-full text-left flex items-center gap-3 px-1 py-2.5 rounded-lg hover:bg-ink-50/60 transition-colors cursor-pointer"
+                @click="ui.openEditTransaction(t)">
+                <span class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold"
+                  :style="{ background: txColor(t) + '1a', color: txColor(t) }">
+                  {{ txTitle(t).slice(0, 1).toUpperCase() }}
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="flex items-center justify-between gap-2">
+                    <span class="text-sm font-medium text-ink-900 truncate">{{ txTitle(t) }}</span>
+                    <span class="text-sm font-semibold shrink-0" :class="t.amount < 0 ? 'text-money-neg' : 'text-money-pos'">
+                      {{ t.amount < 0 ? '−' : '+' }}{{ formatMoney(Math.abs(t.amount), finance.accountById.get(t.accountId)?.currency) }}
+                    </span>
+                  </span>
+                  <span class="flex items-center justify-between gap-2 mt-0.5">
+                    <span class="text-xs text-ink-400 truncate">{{ App.t(finance.accountById.get(t.accountId)?.name) }}<template v-if="t.memo"> · {{ t.memo }}</template></span>
+                    <span class="text-xs text-ink-400 shrink-0">{{ App.formatDate(t.date) }}</span>
+                  </span>
+                </span>
+              </button>
+            </li>
+          </ul>
+          <p v-else class="text-sm text-ink-400 py-8 text-center">{{ App.t('Пока нет операций') }}</p>
         </div>
 
         <div class="rounded-xl bg-white border border-ink-200 p-4 md:p-5">
@@ -85,11 +102,14 @@ App.DashboardView = {
     return {
       App,
       finance: App.financeStore,
+      ui: App.uiStore,
       now,
       currentMonthKey: `${now.getFullYear()}-${now.getMonth()}`,
-      // Bounded to the last 6 months (see loadTransactions) rather than the whole transaction
-      // history, since that's all monthExpenses/monthIncome/monthlyTrend below need.
-      sixMonthTransactions: [],
+      // Current calendar month only — that's all the stat cards and the Топ категорий donut need
+      // (see loadTransactions).
+      monthTransactions: [],
+      // The few newest transactions across all time, for the Последние операции list.
+      recentTransactions: [],
       loading: true,
     }
   },
@@ -98,10 +118,10 @@ App.DashboardView = {
       return App.formatMonthLabel(this.now.getFullYear(), this.now.getMonth())
     },
     monthExpenses() {
-      return this.sixMonthTransactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount < 0 && monthKey(t.date) === this.currentMonthKey)
+      return this.monthTransactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount < 0 && monthKey(t.date) === this.currentMonthKey)
     },
     monthIncome() {
-      return this.sixMonthTransactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount > 0 && monthKey(t.date) === this.currentMonthKey)
+      return this.monthTransactions.filter((t) => t.type !== App.TransactionType.TRANSFER && t.amount > 0 && monthKey(t.date) === this.currentMonthKey)
     },
     totalExpense() {
       return this.monthExpenses.reduce((s, t) => s + Math.abs(this.finance.amountInBase(t)), 0)
@@ -127,23 +147,6 @@ App.DashboardView = {
         .slice(0, 5)
         .map(([id, value]) => ({ category: App.getCategory(id), value }))
     },
-    monthlyTrend() {
-      const months = []
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(this.now.getFullYear(), this.now.getMonth() - i, 1)
-        months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: App.formatMonthLabel(d.getFullYear(), d.getMonth()), income: 0, expense: 0 })
-      }
-      for (const t of this.sixMonthTransactions) {
-        if (t.type === App.TransactionType.TRANSFER) continue
-        const key = monthKey(t.date)
-        const m = months.find((x) => x.key === key)
-        if (!m) continue
-        const amt = this.finance.amountInBase(t)
-        if (amt > 0) m.income += amt
-        else m.expense += Math.abs(amt)
-      }
-      return months
-    },
   },
   watch: {
     'finance.state.transactionsVersion'() { this.loadTransactions() },
@@ -153,12 +156,25 @@ App.DashboardView = {
   },
   methods: {
     formatMoney: App.formatMoney,
+    txColor(t) {
+      if (t.type === App.TransactionType.TRANSFER) return '#94a3b8'
+      return this.finance.categoryById.get(t.categoryId ?? '')?.color ?? '#94a3b8'
+    },
+    txTitle(t) {
+      if (t.type === App.TransactionType.TRANSFER) return App.t('Перевод')
+      return App.t(this.finance.categoryById.get(t.categoryId ?? '')?.name ?? 'Без категории')
+    },
     async loadTransactions() {
       this.loading = true
-      const dateFrom = App.dateStr(new Date(this.now.getFullYear(), this.now.getMonth() - 5, 1))
+      const dateFrom = App.dateStr(new Date(this.now.getFullYear(), this.now.getMonth(), 1))
       const dateTo = App.dateStr(this.now)
       try {
-        this.sixMonthTransactions = await App.api.getAllTransactions({ dateFrom, dateTo })
+        const [monthTx, recent] = await Promise.all([
+          App.api.getAllTransactions({ dateFrom, dateTo }),
+          App.api.getTransactions({ page: 1, pageSize: 8 }),
+        ])
+        this.monthTransactions = monthTx
+        this.recentTransactions = recent.transactions
       } finally {
         this.loading = false
       }
