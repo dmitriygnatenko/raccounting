@@ -29,6 +29,10 @@ App.BudgetView = {
           {{ App.t('Скопировать из прошлого месяца') }}
         </button>
       </div>
+      <div class="flex items-center justify-between gap-3 px-4 md:px-5 py-3 border-b border-ink-200 bg-ink-50/60">
+        <span class="text-sm font-semibold text-ink-900">{{ App.t('Всего') }}</span>
+        <span class="text-sm font-semibold text-ink-900 tabular-nums">{{ App.formatMoney(budgetTotal, finance.state.baseCurrency) }}</span>
+      </div>
       <ul class="divide-y divide-ink-100">
         <li v-for="c in budgetCategories" :key="c.id" class="flex items-center justify-between gap-3 px-4 md:px-5 py-3.5">
           <span class="flex items-center gap-2.5 min-w-0">
@@ -67,6 +71,9 @@ App.BudgetView = {
     },
     hasBudgetThisMonth() {
       return this.budgetCategories.some((c) => this.budgetAmount(c.id) > 0)
+    },
+    budgetTotal() {
+      return this.budgetCategories.reduce((sum, c) => sum + this.budgetAmount(c.id), 0)
     },
   },
   methods: {
