@@ -122,12 +122,12 @@ App.ReportsView = {
                 {{ App.t(row.category?.name) }}
               </span>
               <span class="text-xs">
-                <span :class="row.over ? 'text-money-neg font-medium' : 'text-ink-950 font-medium'">{{ App.formatMoney(row.spent, finance.state.baseCurrency) }}</span>
+                <span :class="row.noBudget ? 'text-brand-600 font-medium' : (row.over ? 'text-money-neg font-medium' : 'text-ink-950 font-medium')">{{ App.formatMoney(row.spent, finance.state.baseCurrency) }}</span>
                 <span class="text-ink-400"> / {{ App.formatMoney(row.budgeted, finance.state.baseCurrency) }}</span>
               </span>
             </div>
             <div class="h-2 rounded-full bg-ink-100 overflow-hidden">
-              <div class="h-full rounded-full transition-all" :class="row.over ? 'bg-money-neg' : 'bg-money-pos'" :style="{ width: row.pct + '%' }"></div>
+              <div class="h-full rounded-full transition-all" :class="row.noBudget ? 'bg-brand-600' : (row.over ? 'bg-money-neg' : 'bg-money-pos')" :style="{ width: row.pct + '%' }"></div>
             </div>
           </li>
         </ul>
@@ -235,6 +235,7 @@ App.ReportsView = {
             spent,
             pct: budgeted ? Math.min(100, Math.round((spent / budgeted) * 100)) : (spent > 0 ? 100 : 0),
             over: budgeted ? spent > budgeted : spent > 0,
+            noBudget: !budgeted,
           }
         })
         .filter((r) => r.spent > 0 || r.budgeted > 0)
