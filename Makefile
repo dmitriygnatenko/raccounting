@@ -8,11 +8,11 @@ GOLANGCI_LINT := $(BIN_DIR)/golangci-lint
 help: ## Show list of commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-10s\033[0m %s\n", $$1, $$2}'
 
-run: ## Run the application (go run ./cmd/raccounting)
-	go run ./cmd/raccounting
-
 build: ## Build binary for Linux (amd64) into build/app/raccounting
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $(BINARY) ./cmd/raccounting
+
+run: ## Run the application (go run ./cmd/raccounting)
+	go run ./cmd/raccounting
 
 tidy: ## Tidy up dependencies
 	go mod tidy

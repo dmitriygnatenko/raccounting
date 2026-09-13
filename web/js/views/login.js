@@ -8,18 +8,17 @@ App.LoginView = {
           <a href="https://raccounting.ru" target="_blank" rel="noopener" class="text-xl font-semibold text-ink-950 hover:text-brand-600 transition-colors">Raccounting</a>
         </p>
         <div class="rounded-xl bg-white border border-ink-200 shadow-sm p-5 md:p-6">
-          <h1 class="text-lg font-semibold text-ink-950 mb-1">{{ App.t('Вход в аккаунт') }}</h1>
-          <p class="text-sm text-ink-400 mb-5">{{ App.t('Введите имя пользователя и пароль, чтобы продолжить') }}</p>
+          <h1 class="text-lg font-semibold text-ink-950 mb-5">{{ App.t('Вход в аккаунт') }}</h1>
           <form class="space-y-4" @submit.prevent="submit">
             <p v-if="error" class="text-sm text-money-neg">{{ error }}</p>
             <div>
               <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Имя пользователя') }}</label>
-              <input v-model="username" type="text" required autocomplete="username" :placeholder="App.t('Например, Иван Иванов')"
+              <input v-model="username" type="text" required autocomplete="username"
                 class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
             </div>
             <div>
               <label class="block text-xs font-medium text-ink-500 mb-1">{{ App.t('Пароль') }}</label>
-              <input v-model="password" type="password" required autocomplete="current-password" placeholder="••••••••"
+              <input v-model="password" type="password" required autocomplete="current-password"
                 class="w-full rounded-lg border border-ink-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500" />
             </div>
             <button type="submit" :disabled="loading"
